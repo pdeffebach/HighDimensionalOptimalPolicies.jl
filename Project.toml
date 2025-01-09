@@ -1,0 +1,13 @@
+name = "HighDimensionalOptimalPolicies"
+uuid = "e3a23cc1-69f3-4c95-b0b2-e5845d780a16"
+authors = ["Peter Deffebach <p.deffebach@gmail.com> and contributors"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1.10"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
