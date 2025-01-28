@@ -8,6 +8,10 @@ using LinearAlgebra, StatsBase
 
 using HighDimensionalOptimalPolicies
 
+include("turing.jl")
+
+include("abstractchains.jl")
+
 """
 A travel network throughout the city. A weighted graph
 in which nodes are locations throughout the city and
@@ -371,7 +375,7 @@ function main()
     edges_to_upgrade_num = sample(1:num_edges, K; replace = false)
     edges_to_upgrade_init = collect(1:num_edges) .∈ Ref(edges_to_upgrade_num)
 
-    policy_best = HighDimensionalOptimalPolicies.solve(edges_to_upgrade_init, mhp, 100.0)
+    policy_best = HighDimensionalOptimalPolicies.solve(edges_to_upgrade_init, mhp; max_itr = 1000)
 
     mynet_best = deepcopy(mynet_init)
     upgrade_highways!(mynet_best, policy_best)
