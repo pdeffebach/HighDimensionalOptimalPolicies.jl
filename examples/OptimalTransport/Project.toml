@@ -4,16 +4,26 @@ authors = ["Peter Deffebach <p.deffebach@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+AdvancedMH = "5b7e9947-ddc0-4b3f-9b55-0d8042f74170"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 HighDimensionalOptimalPolicies = "e3a23cc1-69f3-4c95-b0b2-e5845d780a16"
+Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
 
 [compat]
+AdvancedMH = "0.8.5"
+Distributions = "0.25.116"
+Infiltrator = "1.8.3"
 LinearAlgebra = "1.11.0"
+MCMCChains = "6.0.7"
 Parameters = "0.12.3"
 Plots = "1.40.9"
+Random = "1.11.0"
 StatsBase = "0.34.4"
 UnPack = "1.0.2"

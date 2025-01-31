@@ -1,3 +1,8 @@
+"""
+    MetropolitanHastingsProblem{Fobj, Fnext}
+
+
+"""
 struct MetropolitanHastingsProblem{Fobj, Fnext}
     obj_fun::Fobj
     next_policy::Fnext
@@ -8,7 +13,7 @@ function accept_candidate(W_curr, W_cand, β)
     β * (W_cand - W_curr) > log(rand())
 end
 
-function solve(x_init, mhp::MetropolitanHastingsProblem, max_itr = 1000)
+function solve(x_init, mhp::MetropolitanHastingsProblem; max_itr = 1000)
     itr = 1
     (;obj_fun, next_policy, β) = mhp
     W_curr = obj_fun(x_init)

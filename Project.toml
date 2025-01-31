@@ -3,7 +3,17 @@ uuid = "e3a23cc1-69f3-4c95-b0b2-e5845d780a16"
 authors = ["Peter Deffebach <p.deffebach@gmail.com> and contributors"]
 version = "1.0.0-DEV"
 
+[deps]
+AbstractMCMC = "80f14c24-f653-4e6a-9b94-39d6b0f70001"
+Infiltrator = "5903a43b-9cc3-4c30-8d17-598619ec4e9b"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+
 [compat]
+AbstractMCMC = "5.6.0"
+Infiltrator = "1.8.3"
+Random = "1.11.0"
+StatsBase = "0.34.4"
 julia = "1.10"
 
 [extras]
