@@ -1,0 +1,246 @@
+gr()
+
+struct TravelNetwork
+    coords::Vector{NTuple{2, Float64}}
+    pops::Vector{Float64}
+    adjcosts::Matrix{Float64}
+    edges::Vector{NTuple{2, Int}}
+    flows::Matrix{Float64}
+end
+
+function TravelNetwork(coords, pops, adjcosts)
+    flows = get_flows(pops, adjcosts)
+
+    edges = filter(t -> isfinite(adjcosts[t]), CartesianIndices(adjcosts))
+
+    TravelNetwork(coords, pops, adjcosts, edges, flows)
+end
+
+function pairwisecost(adjcosts; θ = 8.0)
+    B = inv(I - Symmetric(adjcosts) .^(-θ))
+
+    τ = B .^(-1/θ)
+end
+
+function get_flows(pops, adjcosts; θ = 8.0, β = 1.0)
+    τ = pairwisecost(adjcosts; θ)
+
+    flows = similar(adjcosts)
+
+    for i in eachindex(pops)
+        costs_to_other_nodes = @view τ[i, :]
+        πs = (costs_to_other_nodes .^ (-0.5) .* pops) .^ β
+        πs ./= sum(πs)
+        flows[i, :] = pops[i] * πs
+    end
+
+    flows
+end
+
+function get_edges_dict(net)
+    n_coords = length(net.coords)
+    edges_dict = Dict()
+    for i in 1:n_coords
+        for j in i:n_coords
+            c = net.adjcosts[i, j]
+            if isfinite(c)
+                edges_dict[(i, j)] = c
+            end
+        end
+    end
+    edges_dict
+end
+
+"""
+    swap_edges_to_upgrade(edges_to_upgrade)
+
+"""
+swap_edges_to_upgrade(edges_to_upgrade) = swap_edges_to_upgrade(Random.default_rng(), edges_to_upgrade)
+
+function swap_edges_to_upgrade(rng, edges_to_upgrade)
+    improved_edges = findall(edges_to_upgrade)
+    unimproved_edges = findall(edges_to_upgrade .== false)
+
+    edge_to_drop = sample(rng, improved_edges)
+    edge_to_add = sample(rng, unimproved_edges)
+
+    new_edges_to_upgrade = copy(edges_to_upgrade)
+    new_edges_to_upgrade[edge_to_drop] = false
+    new_edges_to_upgrade[edge_to_add] = true
+
+    return new_edges_to_upgrade
+end
+
+function plot_network(
+    net::TravelNetwork;
+    title = "",
+    min_width = 1.0,
+    max_width = 6.0,
+    max_marker_size = 15.0,
+    edges_to_upgrade = nothing)
+
+    (; coords, pops, adjcosts, edges, flows) = net
+
+    plot(; title)
+
+    edges_dict = get_edges_dict(net)
+    cs = values(edges_dict)
+    min_cost = minimum(cs)
+    max_cost = maximum(cs)
+    if max_cost == min_cost
+        max_cost = 1.1 * min_cost
+    end
+    max_cost_diff = max_cost - min_cost
+    max_line_diff = (max_width - min_width)
+    for k in keys(edges_dict)
+        i, j = k
+        coord_i = coords[i]
+        coord_j = coords[j]
+        c = edges_dict[k]
+
+        linewidth = ((c - min_cost) / max_cost_diff) * max_line_diff + max_width
+        plot!([coord_i, coord_j]; color = "grey", linewidth, label = "")
+    end
+
+    if edges_to_upgrade !== nothing
+        for ei in eachindex(edges_to_upgrade)
+            e = edges_to_upgrade[ei]
+            i, j = edges[ei]
+            if e == true
+                coord_i = coords[i]
+                coord_j = coords[j]
+                plot!([coord_i, coord_j]; color = "black", linewidth = max_width, label = "")
+            end
+        end
+    end
+
+    marker_sizes = (pops ./ maximum(pops)) .* max_marker_size
+    Plots.scatter!(coords; markersize = marker_sizes, label = "")
+end
+
+function random_travel_network(n_coords)
+    coords_unsorted = [(rand(), rand()) for i in 1:n_coords]
+    coords = sort(coords_unsorted, lt = (x, y) -> (x[1] < y[1]))
+
+    tri = triangulate(coords)
+
+    adjcosts = fill(Inf, n_coords, n_coords)
+    for e in each_solid_edge(tri)
+        u, v = edge_vertices(e)
+        p, q = get_point(tri, u, v)
+
+        d = norm(p .- q)
+        adjcosts[u, v] = d
+        adjcosts[v, u] = d
+    end
+    adjcosts = 2 .* adjcosts ./ minimum(adjcosts)
+
+    # Give high populations to places
+    # near and far from the origin
+    _, min_ind = findmin(norm, coords)
+    _, max_ind = findmax(norm, coords)
+    pops = fill(1.0, n_coords)
+    pops[min_ind] = 10.0
+    pops[max_ind] = 10.0
+    pops = pops ./ sum(pops)
+
+    TravelNetwork(coords, pops, adjcosts)
+end
+
+function square_travel_network(n_sides)
+    coords_ints = map(Iterators.product(1:n_sides, 1:n_sides)) do (i, j)
+        (i, j)
+    end |> vec
+
+    n_coords = length(coords_ints)
+
+    adjcosts = map(Iterators.product(coords_ints, coords_ints)) do (i, j)
+        xi, yi = i
+        xj, yj = j
+        if (xj == (xi + 1) || xj == (xi - 1)) && (yi == yj)
+            2.0
+        elseif (yj == (yi + 1) || yj == (yi - 1)) && (xi == xj)
+            2.0
+        else
+            Inf
+        end
+    end
+
+    coords = map(coords_ints) do c
+        c ./ n_sides
+    end
+
+    # Give a large population to the 5 closest coordinates on the
+    # line y = x
+    dist_from_line = map(coords) do (x, y)
+        abs(x - y)
+    end
+    dist_rank = StatsBase.ordinalrank(dist_from_line)
+
+    pops = fill(1.0, n_coords)
+    for i in eachindex(pops)
+        if dist_rank[i] <= 5
+            pops[i] = 10.0
+        end
+    end
+    pops = pops ./ sum(pops)
+
+    TravelNetwork(coords, pops, adjcosts)
+end
+
+function get_upgraded_network(edges_to_upgrade, net::TravelNetwork; cost_ratio = 0.75)
+    (; edges, adjcosts) = net
+
+    adjcosts_new = copy(adjcosts)
+    for i in eachindex(edges_to_upgrade)
+        e = edges_to_upgrade[i]
+        if e == true
+            ind = CartesianIndex(edges[i])
+            adjcosts_new[ind] = adjcosts[ind] * cost_ratio
+        end
+    end
+    new_net = @set net.adjcosts = adjcosts_new
+    new_net
+end
+
+get_initial_upgrade(net; num_upgrades = 10) = get_initial_upgrade(default_rng(), net; num_upgrades)
+function get_initial_upgrade(rng, net::TravelNetwork; num_upgrades = 10)
+    (; edges) = net
+    n = length(edges)
+    edges_to_upgrade = fill(false, n)
+    inds_to_upgrade = sample(rng, 1:n, num_upgrades)
+    edges_to_upgrade[inds_to_upgrade] .= true
+    edges_to_upgrade
+end
+
+function welfare(net::TravelNetwork)
+    (; adjcosts, flows) = net
+    τ = pairwisecost(adjcosts)
+
+    # average costs, weighted by population flows
+    # Recall that flows are exogenous in this set-up.
+    return (-1) * sum(flows .* τ) / sum(flows)
+end
+
+function test_travel_network()
+    net = square_travel_network(5)
+    #net = random_travel_network(25)
+
+    initfun, objfun, nextfun = let net = net
+        initfun = rng -> get_initial_upgrade(rng, net; num_upgrades = 8)
+        objfun = edges_to_upgrade -> begin
+            new_net = get_upgraded_network(edges_to_upgrade, net)
+            welfare(new_net)
+        end
+        nextfun = (rng, edges_to_upgrade) -> swap_edges_to_upgrade(rng, edges_to_upgrade)
+        initfun, objfun, nextfun
+    end
+
+    β = 500.0
+    best_edges_to_upgrade = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
+    best_edges_to_upgrade = best_edges_to_upgrade .== 1
+
+  #  best_edges_to_upgrade_mcmc = HDOP.get_best_policy_mcmc(HDOP.MCMCSolver(); initfun, objfun, nextfun, β)
+
+    plot_network(net; edges_to_upgrade = best_edges_to_upgrade)
+end

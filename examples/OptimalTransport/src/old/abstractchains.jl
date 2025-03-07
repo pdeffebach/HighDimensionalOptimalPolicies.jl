@@ -1,5 +1,3 @@
-const HDOP = HighDimensionalOptimalPolicies
-
 function abstractmcmc()
     nside = 5
     mynet_init = init_env_square_nodiag(nside)
