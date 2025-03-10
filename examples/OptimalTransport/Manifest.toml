@@ -2,7 +2,7 @@
 
 julia_version = "1.11.2"
 manifest_format = "2.0"
-project_hash = "0c9a6ea21d4f6f7a3142cee565856948446eadf4"
+project_hash = "21a49068a2eda36450963e150dc3593906c1057b"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -298,6 +298,11 @@ weakdeps = ["InverseFunctions"]
 
     [deps.CompositionsBase.extensions]
     CompositionsBaseInverseFunctionsExt = "InverseFunctions"
+
+[[deps.ConcreteStructs]]
+git-tree-sha1 = "f749037478283d372048690eb3b5f92a79432b34"
+uuid = "2569d6c7-a4a2-43d3-a901-331e8e4be471"
+version = "0.2.3"
 
 [[deps.ConcurrentUtilities]]
 deps = ["Serialization", "Sockets"]
@@ -714,7 +719,7 @@ uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "8.5.0+0"
 
 [[deps.HighDimensionalOptimalPolicies]]
-deps = ["AbstractMCMC", "Distributions", "DocStringExtensions", "Infiltrator", "MCMCChains", "Optim", "Pigeons", "Random", "StatsBase"]
+deps = ["AbstractMCMC", "Distributions", "DocStringExtensions", "Infiltrator", "LogDensityProblems", "MCMCChains", "MCMCTempering", "Optim", "Pigeons", "Random", "StatsBase"]
 path = "../.."
 uuid = "e3a23cc1-69f3-4c95-b0b2-e5845d780a16"
 version = "1.0.0-DEV"
@@ -1138,6 +1143,22 @@ deps = ["AbstractFFTs", "DataAPI", "DataStructures", "Distributions", "LinearAlg
 git-tree-sha1 = "a586f05dd16a50c490ed95415b2a829b8cf5d57f"
 uuid = "be115224-59cd-429b-ad48-344e309966f0"
 version = "0.3.14"
+
+[[deps.MCMCTempering]]
+deps = ["AbstractMCMC", "ConcreteStructs", "Distributions", "DocStringExtensions", "InverseFunctions", "LinearAlgebra", "LogDensityProblems", "MCMCChains", "ProgressLogging", "Random", "Setfield"]
+git-tree-sha1 = "f0161a77e87f2c3498c68c153362bfaf60d963c5"
+repo-rev = "main"
+repo-url = "https://github.com/TuringLang/MCMCTempering.jl.git"
+uuid = "ce233488-44ea-4441-b732-192676ce2298"
+version = "0.4.0"
+
+    [deps.MCMCTempering.extensions]
+    MCMCTemperingAdvancedHMCExt = ["AdvancedHMC"]
+    MCMCTemperingAdvancedMHExt = ["AdvancedMH"]
+
+    [deps.MCMCTempering.weakdeps]
+    AdvancedHMC = "0bf59076-c3b1-5ca4-86bd-e02cd72cde3d"
+    AdvancedMH = "5b7e9947-ddc0-4b3f-9b55-0d8042f74170"
 
 [[deps.MKL_jll]]
 deps = ["Artifacts", "IntelOpenMP_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "oneTBB_jll"]
