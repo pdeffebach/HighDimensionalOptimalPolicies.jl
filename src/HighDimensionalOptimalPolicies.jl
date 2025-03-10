@@ -6,6 +6,7 @@ using Distributions
 using DocStringExtensions
 using Pigeons
 using MCMCChains
+using MCMCTempering
 
 abstract type AbstractPolicySolver end
 

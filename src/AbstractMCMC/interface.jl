@@ -303,7 +303,7 @@ function AbstractMCMC.step(
     transition_prev::PolicyTransition;
     kwargs...
 )
-    invtemp = model.invtemp
+    invtemp = sampler.invtemp
 
     # Generate a new proposal.
     candidate = propose(rng, sampler, model, transition_prev)
