@@ -66,6 +66,18 @@ git-tree-sha1 = "7e651ea8d262d2d74ce75fdf47c4d63c07dba7a6"
 uuid = "35492f91-a3bd-45ad-95db-fcad7dcfedb7"
 version = "1.2.0"
 
+[[deps.AdvancedMH]]
+deps = ["AbstractMCMC", "Distributions", "DocStringExtensions", "FillArrays", "LinearAlgebra", "LogDensityProblems", "Random", "Requires"]
+git-tree-sha1 = "bcf97a5390262571d64d62566673bf1e72080d11"
+uuid = "5b7e9947-ddc0-4b3f-9b55-0d8042f74170"
+version = "0.8.6"
+weakdeps = ["DiffResults", "ForwardDiff", "MCMCChains", "StructArrays"]
+
+    [deps.AdvancedMH.extensions]
+    AdvancedMHForwardDiffExt = ["DiffResults", "ForwardDiff"]
+    AdvancedMHMCMCChainsExt = "MCMCChains"
+    AdvancedMHStructArraysExt = "StructArrays"
+
 [[deps.AliasTables]]
 deps = ["PtrArrays", "Random"]
 git-tree-sha1 = "9876e1e164b144ca45e9e3198d0b689cadfed9ff"
@@ -719,7 +731,7 @@ uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "8.5.0+0"
 
 [[deps.HighDimensionalOptimalPolicies]]
-deps = ["AbstractMCMC", "Distributions", "DocStringExtensions", "Infiltrator", "LogDensityProblems", "MCMCChains", "MCMCTempering", "Optim", "Pigeons", "Random", "StatsBase"]
+deps = ["AbstractMCMC", "AdvancedMH", "Distributions", "DocStringExtensions", "Infiltrator", "LogDensityProblems", "MCMCChains", "MCMCTempering", "Optim", "Pigeons", "Random", "StatsBase"]
 path = "../.."
 uuid = "e3a23cc1-69f3-4c95-b0b2-e5845d780a16"
 version = "1.0.0-DEV"

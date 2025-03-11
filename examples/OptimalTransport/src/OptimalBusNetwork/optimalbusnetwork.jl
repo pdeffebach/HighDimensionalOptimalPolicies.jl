@@ -75,8 +75,8 @@ function plot_network(
     net::TravelNetwork;
     title = "",
     min_width = 1.0,
-    max_width = 6.0,
-    max_marker_size = 15.0,
+    max_width = 2.0,
+    max_marker_size = 4.0,
     edges_to_upgrade = nothing)
 
     (; coords, pops, adjcosts, edges, flows) = net
@@ -135,13 +135,19 @@ function random_travel_network(n_coords)
     end
     adjcosts = 2 .* adjcosts ./ minimum(adjcosts)
 
-    # Give high populations to places
-    # near and far from the origin
-    _, min_ind = findmin(norm, coords)
-    _, max_ind = findmax(norm, coords)
+    # Give a large population to the 5 closest coordinates on the
+    # line y = x
+    dist_from_line = map(coords) do (x, y)
+        abs(x - y)
+    end
+    dist_rank = StatsBase.ordinalrank(dist_from_line)
+
     pops = fill(1.0, n_coords)
-    pops[min_ind] = 10.0
-    pops[max_ind] = 10.0
+    for i in eachindex(pops)
+        if (dist_rank[i] / n_coords) <= 0.2
+            pops[i] = 50.0
+        end
+    end
     pops = pops ./ sum(pops)
 
     TravelNetwork(coords, pops, adjcosts)
@@ -179,8 +185,8 @@ function square_travel_network(n_sides)
 
     pops = fill(1.0, n_coords)
     for i in eachindex(pops)
-        if dist_rank[i] <= 5
-            pops[i] = 10.0
+        if (dist_rank[i] / n_coords) <= 0.2
+            pops[i] = 50.0
         end
     end
     pops = pops ./ sum(pops)
@@ -208,7 +214,7 @@ function get_initial_upgrade(rng, net::TravelNetwork; num_upgrades = 10)
     (; edges) = net
     n = length(edges)
     edges_to_upgrade = fill(false, n)
-    inds_to_upgrade = sample(rng, 1:n, num_upgrades)
+    inds_to_upgrade = sample(rng, 1:n, num_upgrades; replace = false)
     edges_to_upgrade[inds_to_upgrade] .= true
     edges_to_upgrade
 end
@@ -223,11 +229,14 @@ function welfare(net::TravelNetwork)
 end
 
 function test_travel_network()
-    net = square_travel_network(5)
-    #net = random_travel_network(25)
+    net = square_travel_network(10)
+    #net = random_travel_network(100)
+
+    # One upgrade per high-population node
+    num_upgrades = floor(Int, length(net.pops) * 0.2)
 
     initfun, objfun, nextfun = let net = net
-        initfun = rng -> get_initial_upgrade(rng, net; num_upgrades = 8)
+        initfun = rng -> get_initial_upgrade(rng, net; num_upgrades = num_upgrades)
         objfun = edges_to_upgrade -> begin
             new_net = get_upgraded_network(edges_to_upgrade, net)
             welfare(new_net)
@@ -237,10 +246,20 @@ function test_travel_network()
     end
 
     β = 500.0
-    best_edges_to_upgrade = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
-    best_edges_to_upgrade = best_edges_to_upgrade .== 1
 
-  #  best_edges_to_upgrade_mcmc = HDOP.get_best_policy_mcmc(HDOP.MCMCSolver(); initfun, objfun, nextfun, β)
+    best_edges_to_upgrade_pigeons = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
+    best_edges_to_upgrade_pigeons = best_edges_to_upgrade_pigeons .== 1
 
-    plot_network(net; edges_to_upgrade = best_edges_to_upgrade)
+    best_edges_to_upgrade_mcmc = HDOP.get_best_policy(HDOP.MCMCSolver(); initfun, objfun, nextfun, β)
+
+    best_edges_to_upgrade_temperedmcmc = HDOP.get_best_policy(HDOP.TemperedMCMCSolver(); initfun, objfun, nextfun, β)
+
+    @show sum(best_edges_to_upgrade_pigeons)
+    @show sum(best_edges_to_upgrade_mcmc)
+    @show sum(best_edges_to_upgrade_temperedmcmc)
+
+    p_pigeons = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_pigeons, title = "Pigeons.jl")
+    p_mcmc = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_mcmc, title = "Metropolis Hastings")
+    p_temperedmcmc = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_temperedmcmc, title = "TemperedMCMC.jl")
+    plot(p_pigeons, p_mcmc, p_temperedmcmc)
 end
