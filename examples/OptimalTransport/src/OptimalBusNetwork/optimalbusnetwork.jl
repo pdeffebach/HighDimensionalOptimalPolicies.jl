@@ -6,14 +6,15 @@ struct TravelNetwork
     adjcosts::Matrix{Float64}
     edges::Vector{NTuple{2, Int}}
     flows::Matrix{Float64}
+    num_upgrades::Int
 end
 
-function TravelNetwork(coords, pops, adjcosts)
+function TravelNetwork(coords, pops, adjcosts, num_upgrades)
     flows = get_flows(pops, adjcosts)
 
     edges = filter(t -> isfinite(adjcosts[t]), CartesianIndices(adjcosts))
 
-    TravelNetwork(coords, pops, adjcosts, edges, flows)
+    TravelNetwork(coords, pops, adjcosts, edges, flows, num_upgrades)
 end
 
 function pairwisecost(adjcosts; θ = 8.0)
@@ -71,13 +72,23 @@ function swap_edges_to_upgrade(rng, edges_to_upgrade)
     return new_edges_to_upgrade
 end
 
+function get_n̄(net)
+    (;edges = net)
+    num_edges = length(net.edges)
+end
+
 function plot_network(
     net::TravelNetwork;
     title = "",
-    min_width = 1.0,
-    max_width = 2.0,
+    min_width = 0.5,
+    max_width = 10.0,
     max_marker_size = 4.0,
-    edges_to_upgrade = nothing)
+    edges_to_upgrade = nothing,
+    average_edges_to_upgrade = nothing)
+
+    if !isnothing(edges_to_upgrade) && !isnothing(average_edges_to_upgrade)
+        throw(ArgumentError("Cannot supply both edges_to_upgrade and average_edges_to_ugrade"))
+    end
 
     (; coords, pops, adjcosts, edges, flows) = net
 
@@ -114,24 +125,47 @@ function plot_network(
         end
     end
 
+    if average_edges_to_upgrade !== nothing
+        # Just start over again with a new plot
+        # TODO: Figure out a better way to do this
+        plot(; title)
+        min_cost = minimum(average_edges_to_upgrade)
+        max_cost = maximum(average_edges_to_upgrade)
+        if max_cost == min_cost
+            max_cost = 1.1 * min_cost
+        end
+        max_cost_diff = max_cost - min_cost
+        max_line_diff = (max_width - min_width)
+        for edges_itr in 1:length(edges)
+            edge = edges[edges_itr]
+            i, j = edge
+            coord_i = coords[i]
+            coord_j = coords[j]
+            c = average_edges_to_upgrade[edges_itr]
+
+            linewidth = ((c - min_cost) / max_cost_diff) * max_line_diff
+            plot!([coord_i, coord_j]; color = "black", linewidth, label = "")
+        end
+    end
+
     marker_sizes = (pops ./ maximum(pops)) .* max_marker_size
     Plots.scatter!(coords; markersize = marker_sizes, label = "")
 end
 
-function random_travel_network(n_coords)
+function random_travel_network(n_coords; num_upgrades = nothing)
     coords_unsorted = [(rand(), rand()) for i in 1:n_coords]
     coords = sort(coords_unsorted, lt = (x, y) -> (x[1] < y[1]))
 
-    tri = triangulate(coords)
+    tri = DelaunayTriangulation.triangulate(coords)
 
     adjcosts = fill(Inf, n_coords, n_coords)
-    for e in each_solid_edge(tri)
-        u, v = edge_vertices(e)
-        p, q = get_point(tri, u, v)
+    for e in DelaunayTriangulation.each_solid_edge(tri)
+        u, v = DelaunayTriangulation.edge_vertices(e)
+        p, q = DelaunayTriangulation.get_point(tri, u, v)
 
         d = norm(p .- q)
-        adjcosts[u, v] = d
-        adjcosts[v, u] = d
+        adjcosts[u, v] = 2.0
+        adjcosts[v, u] = 2.0
     end
     adjcosts = 2 .* adjcosts ./ minimum(adjcosts)
 
@@ -150,10 +184,14 @@ function random_travel_network(n_coords)
     end
     pops = pops ./ sum(pops)
 
-    TravelNetwork(coords, pops, adjcosts)
+    if isnothing(num_upgrades)
+        num_upgrades = floor(Int, n_coords * 0.2)
+    end
+
+    TravelNetwork(coords, pops, adjcosts, num_upgrades)
 end
 
-function square_travel_network(n_sides)
+function square_travel_network(n_sides; num_upgrades = nothing)
     coords_ints = map(Iterators.product(1:n_sides, 1:n_sides)) do (i, j)
         (i, j)
     end |> vec
@@ -191,7 +229,11 @@ function square_travel_network(n_sides)
     end
     pops = pops ./ sum(pops)
 
-    TravelNetwork(coords, pops, adjcosts)
+    if isnothing(num_upgrades)
+        num_upgrades = floor(Int, n_coords * 0.2)
+    end
+
+    TravelNetwork(coords, pops, adjcosts, num_upgrades)
 end
 
 function get_upgraded_network(edges_to_upgrade, net::TravelNetwork; cost_ratio = 0.75)
@@ -209,9 +251,9 @@ function get_upgraded_network(edges_to_upgrade, net::TravelNetwork; cost_ratio =
     new_net
 end
 
-get_initial_upgrade(net; num_upgrades = 10) = get_initial_upgrade(default_rng(), net; num_upgrades)
-function get_initial_upgrade(rng, net::TravelNetwork; num_upgrades = 10)
-    (; edges) = net
+get_initial_upgrade(net) = get_initial_upgrade(default_rng(), net)
+function get_initial_upgrade(rng, net::TravelNetwork)
+    (; edges, num_upgrades) = net
     n = length(edges)
     edges_to_upgrade = fill(false, n)
     inds_to_upgrade = sample(rng, 1:n, num_upgrades; replace = false)
@@ -228,15 +270,19 @@ function welfare(net::TravelNetwork)
     return (-1) * sum(flows .* τ) / sum(flows)
 end
 
-function test_travel_network()
-    net = square_travel_network(10)
-    #net = random_travel_network(100)
+lchoose(a,b) = SpecialFunctions.logabsbinomial(a,b)[1]
 
-    # One upgrade per high-population node
-    num_upgrades = floor(Int, length(net.pops) * 0.2)
+function get_log_n̄(net)
+    (; num_upgrades, edges) = net
+    lchoose(length(edges), num_upgrades)
+end
+
+function test_travel_network()
+    #net = square_travel_network(5)
+    net = random_travel_network(10)
 
     initfun, objfun, nextfun = let net = net
-        initfun = rng -> get_initial_upgrade(rng, net; num_upgrades = num_upgrades)
+        initfun = rng -> get_initial_upgrade(rng, net)
         objfun = edges_to_upgrade -> begin
             new_net = get_upgraded_network(edges_to_upgrade, net)
             welfare(new_net)
@@ -247,8 +293,14 @@ function test_travel_network()
 
     β = 500.0
 
-    best_edges_to_upgrade_pigeons = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
-    best_edges_to_upgrade_pigeons = best_edges_to_upgrade_pigeons .== 1
+    out = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
+    last_policy = HDOP.get_last_policy(out)
+    average_policy = HDOP.get_average_policy(out)
+    #plot_network(net; edges_to_upgrade = last_policy)
+    plot_network(net; average_edges_to_upgrade = average_policy)
+
+    (; net, out)
+#=    best_edges_to_upgrade_pigeons = best_edges_to_upgrade_pigeons .== 1
 
     best_edges_to_upgrade_mcmc = HDOP.get_best_policy(HDOP.MCMCSolver(); initfun, objfun, nextfun, β)
 
@@ -261,5 +313,14 @@ function test_travel_network()
     p_pigeons = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_pigeons, title = "Pigeons.jl")
     p_mcmc = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_mcmc, title = "Metropolis Hastings")
     p_temperedmcmc = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_temperedmcmc, title = "TemperedMCMC.jl")
-    plot(p_pigeons, p_mcmc, p_temperedmcmc)
+    plot(p_pigeons, p_mcmc, p_temperedmcmc)=#
 end
+
+function plot_sol(net, out)
+    last_policy = HDOP.get_last_policy(out)
+    average_policy = HDOP.get_average_policy(out)
+    plot_network(net; average_edges_to_upgrade = average_policy)
+end
+
+
+
