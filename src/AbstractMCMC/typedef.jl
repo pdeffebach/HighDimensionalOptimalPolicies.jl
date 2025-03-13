@@ -46,9 +46,8 @@ Stores the proposal function, i.e. the function that guesses the
 initial policy and the function that returns the next guess
 conditional on the current guess.
 """
-struct PolicySampler{P, I} <: AbstractPolicySampler
+struct PolicySampler{P} <: AbstractPolicySampler
     proposal::P
-    invtemp::I
 end
 
 """
@@ -60,13 +59,18 @@ struct PolicyProposalCallable{I, N} <: AbstractPolicyProposalCallable{I, N}
     proposalfun::N
 end
 
-function PolicySampler(initfun, nextfun, β)
+function PolicySampler(initfun, nextfun)
     pc = PolicyProposalCallable(initfun, nextfun)
-    PolicySampler(pc, β)
+    PolicySampler(pc)
 end
 
 struct PolicyObjective{F} <: AbstractPolicyObjective
     objfun::F
+end
+
+struct TemperedPolicyObjective{F, T} <: AbstractPolicyObjective
+    objfun::F
+    invtemp::T
 end
 
 """

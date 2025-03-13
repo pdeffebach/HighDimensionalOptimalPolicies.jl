@@ -8,13 +8,15 @@ using Pigeons
 using MCMCChains
 using MCMCTempering
 
+using AdvancedMH
+using LogDensityProblems
+
 abstract type AbstractPolicySolver end
 
 include("Simple/simple.jl")
 
 include("AbstractMCMC/typedef.jl")
 include("AbstractMCMC/interface.jl")
-include("AbstractMCMC/paralleltempering.jl")
 include("AbstractMCMC/api.jl")
 
 include("Pigeons/pigeons.jl")

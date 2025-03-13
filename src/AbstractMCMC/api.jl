@@ -3,31 +3,35 @@ struct MCMCSolver <: AbstractPolicySolver end
 struct TemperedMCMCSolver <: AbstractPolicySolver end
 
 function get_best_policy(::MCMCSolver; initfun, objfun, nextfun, β::Real, kwargs...)
-    proposal = PolicySampler(initfun, nextfun, β)
-    model = PolicyObjective(objfun, β)
-    num_rounds = 100
+    sampler = PolicySampler(initfun, nextfun)
+    model = TemperedPolicyObjective(objfun, β)
+    num_rounds = 1000
     rng = Random.default_rng()
 
-    sample(
+    s = sample(
         rng,
         model,
-        proposal,
+        sampler,
         num_rounds,
         chain_type = MCMCChains.Chains)
+    last(s).params
 end
 
 function get_best_policy(::TemperedMCMCSolver; initfun, objfun, nextfun, β::Real, kwargs...)
-    βs = range(0, β; length = 3)
-    proposal = PolicySampler(initfun, nextfun, β)
-    model = PolicyObjective(objfun)
-    num_rounds = 100
+    sampler = PolicySampler(initfun, nextfun)
+    model = TemperedPolicyObjective(objfun, β)
+    num_rounds = 1000
     rng = Random.default_rng()
 
-    sample(
+    inverse_temperatures = 0.9 .^ (0:20)
+    sampler_tempered = TemperedSampler(sampler, inverse_temperatures)
+
+    s = sample(
         rng,
         model,
-        proposal,
+        sampler_tempered,
         num_rounds,
         chain_type = MCMCChains.Chains)
+    last(s).params
 end
 

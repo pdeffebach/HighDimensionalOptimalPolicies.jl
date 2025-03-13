@@ -29,7 +29,16 @@ function test_MCMC()
         initfun = test_initfun,
         objfun = test_objfun,
         nextfun = test_nextfun,
-        β = 20.0)
+        β = 200.0)
+end
+
+function test_TemperedMCMC()
+    get_best_policy(
+        TemperedMCMCSolver();
+        initfun = test_initfun,
+        objfun = test_objfun,
+        nextfun = test_nextfun,
+        β = 200.0)
 end
 
 function test_Pigeons()
@@ -38,6 +47,6 @@ function test_Pigeons()
         initfun = test_initfun,
         objfun = test_objfun,
         nextfun = test_nextfun,
-        β = 20.0)
+        β = 200.0)
 end
 
