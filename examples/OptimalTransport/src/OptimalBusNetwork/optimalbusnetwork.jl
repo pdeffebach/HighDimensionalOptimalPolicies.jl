@@ -297,31 +297,18 @@ function run_solver(net, β)
 
     out = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
     (; net, out)
-    #last_policy = HDOP.get_last_policy(out)
-    #average_policy = HDOP.get_average_policy(out)
-    #plot_network(net; edges_to_upgrade = last_policy)
-    #plot_network(net; average_edges_to_upgrade = average_policy)
+    last_policy = HDOP.get_last_policy(out)
+    average_policy = HDOP.get_average_policy(out)
+    p = plot_network(net; average_edges_to_upgrade = average_policy)
+    display(p)
 
-#=    best_edges_to_upgrade_pigeons = best_edges_to_upgrade_pigeons .== 1
-
-    best_edges_to_upgrade_mcmc = HDOP.get_best_policy(HDOP.MCMCSolver(); initfun, objfun, nextfun, β)
-
-    best_edges_to_upgrade_temperedmcmc = HDOP.get_best_policy(HDOP.TemperedMCMCSolver(); initfun, objfun, nextfun, β)
-
-    @show sum(best_edges_to_upgrade_pigeons)
-    @show sum(best_edges_to_upgrade_mcmc)
-    @show sum(best_edges_to_upgrade_temperedmcmc)
-
-    p_pigeons = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_pigeons, title = "Pigeons.jl")
-    p_mcmc = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_mcmc, title = "Metropolis Hastings")
-    p_temperedmcmc = plot_network(net; edges_to_upgrade = best_edges_to_upgrade_temperedmcmc, title = "TemperedMCMC.jl")
-    plot(p_pigeons, p_mcmc, p_temperedmcmc)=#
+    (; net, out)
 end
 
 function test_travel_network()
-    #net = square_travel_network(5)
-    net = random_travel_network(100)
-    β = 500
+    net = square_travel_network(5)
+    #net = random_travel_network(10)
+    β = 1
 
     (;net, out) = run_solver(net, β)
 end
