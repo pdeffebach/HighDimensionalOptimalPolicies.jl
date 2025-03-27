@@ -7,11 +7,14 @@ using DocStringExtensions
 using Pigeons
 using MCMCChains
 using MCMCTempering
+using Tables
+using StatsBase
 
 using AdvancedMH
 using LogDensityProblems
 
 abstract type AbstractPolicySolver end
+abstract type AbstractPolicyOutput end
 
 include("Simple/simple.jl")
 

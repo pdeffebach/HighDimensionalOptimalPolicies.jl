@@ -43,12 +43,11 @@ Pigeons.initialization(outerprob::OuterHighDimensionalProblem, rng::AbstractRNG,
     outerprob.problem.initfun(rng)
 
 
-function Pigeons.adapt_tempering(tempering::Pigeons.NonReversiblePT, reduced_recorders, iterators, variational, state::Vector{<:Real}, chain_indices)
-    @infiltrate
+#=function Pigeons.adapt_tempering(tempering::Pigeons.NonReversiblePT, reduced_recorders, iterators, variational, state::Vector{<:Real}, chain_indices)
     new_path = Pigeons.update_path_if_needed(tempering.path, reduced_recorders, iterators, variational, state)
     return Pigeons.NonReversiblePT(
         new_path,
         tempering.schedule, # just use the previous schedule,
         Pigeons.communication_barriers(reduced_recorders, tempering.schedule, chain_indices)
     )
-end
+end=#

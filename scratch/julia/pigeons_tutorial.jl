@@ -409,7 +409,6 @@ is the way to go.
 This is the key function!
 =#
 function Pigeons.step!(explorer::MyIndependenceSampler, replica, shared)
-    @infiltrate
     state = replica.state
     rng = replica.rng
     # Note: the log_potential is an InterpolatedLogPotential between the target and reference

@@ -2,7 +2,7 @@
 
 julia_version = "1.11.2"
 manifest_format = "2.0"
-project_hash = "21a49068a2eda36450963e150dc3593906c1057b"
+project_hash = "f8e0c77904dc606507654df8d3f1b4358aa6df2c"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -731,7 +731,7 @@ uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "8.5.0+0"
 
 [[deps.HighDimensionalOptimalPolicies]]
-deps = ["AbstractMCMC", "AdvancedMH", "Distributions", "DocStringExtensions", "Infiltrator", "LogDensityProblems", "MCMCChains", "MCMCTempering", "Optim", "Pigeons", "Random", "StatsBase"]
+deps = ["AbstractMCMC", "AdvancedMH", "Distributions", "DocStringExtensions", "Infiltrator", "LinearAlgebra", "LogDensityProblems", "MCMCChains", "MCMCTempering", "Optim", "Pigeons", "Random", "StatsBase", "Tables"]
 path = "../.."
 uuid = "e3a23cc1-69f3-4c95-b0b2-e5845d780a16"
 version = "1.0.0-DEV"

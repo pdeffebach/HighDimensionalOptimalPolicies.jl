@@ -11,6 +11,8 @@ using Random
 using DelaunayTriangulation
 using Distributions
 using Accessors
+using SpecialFunctions
+
 
 include("OptimalBusNetwork/optimalbusnetwork.jl")
 
