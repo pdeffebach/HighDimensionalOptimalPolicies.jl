@@ -277,10 +277,13 @@ function get_log_n̄(net)
     lchoose(length(edges), num_upgrades)
 end
 
-function test_travel_network()
-    #net = square_travel_network(5)
-    net = random_travel_network(10)
+function plot_sol(net, out)
+    last_policy = HDOP.get_last_policy(out)
+    average_policy = HDOP.get_average_policy(out)
+    plot_network(net; average_edges_to_upgrade = average_policy)
+end
 
+function run_solver(net, β)
     initfun, objfun, nextfun = let net = net
         initfun = rng -> get_initial_upgrade(rng, net)
         objfun = edges_to_upgrade -> begin
@@ -291,15 +294,14 @@ function test_travel_network()
         initfun, objfun, nextfun
     end
 
-    β = 500.0
 
     out = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
-    last_policy = HDOP.get_last_policy(out)
-    average_policy = HDOP.get_average_policy(out)
-    #plot_network(net; edges_to_upgrade = last_policy)
-    plot_network(net; average_edges_to_upgrade = average_policy)
-
     (; net, out)
+    #last_policy = HDOP.get_last_policy(out)
+    #average_policy = HDOP.get_average_policy(out)
+    #plot_network(net; edges_to_upgrade = last_policy)
+    #plot_network(net; average_edges_to_upgrade = average_policy)
+
 #=    best_edges_to_upgrade_pigeons = best_edges_to_upgrade_pigeons .== 1
 
     best_edges_to_upgrade_mcmc = HDOP.get_best_policy(HDOP.MCMCSolver(); initfun, objfun, nextfun, β)
@@ -316,10 +318,12 @@ function test_travel_network()
     plot(p_pigeons, p_mcmc, p_temperedmcmc)=#
 end
 
-function plot_sol(net, out)
-    last_policy = HDOP.get_last_policy(out)
-    average_policy = HDOP.get_average_policy(out)
-    plot_network(net; average_edges_to_upgrade = average_policy)
+function test_travel_network()
+    #net = square_travel_network(5)
+    net = random_travel_network(100)
+    β = 500
+
+    (;net, out) = run_solver(net, β)
 end
 
 

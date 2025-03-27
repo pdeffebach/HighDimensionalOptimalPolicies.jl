@@ -8,6 +8,7 @@ using Pigeons
 using MCMCChains
 using MCMCTempering
 using Tables
+using StatsBase
 
 using AdvancedMH
 using LogDensityProblems

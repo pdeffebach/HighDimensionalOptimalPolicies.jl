@@ -15,10 +15,11 @@ function get_best_policy(::PigeonsSolver; initfun, objfun, nextfun, β, kwargs..
         reference = OuterHighDimensionalProblem(0.0, H),
         record = [traces],
         n_chains = 10,
-        n_rounds = 10,
+        n_rounds = 13,
         explorer = H,
         multithreaded = false,
-        show_report = false)
+        show_report = false;
+        kwargs...)
 
     PigeonsSolverOutput(OuterHighDimensionalProblem(β, H), pt)
 end
@@ -51,22 +52,20 @@ function get_objective_vec(out::PigeonsSolverOutput)
     chn = Chains(out.pt)
     nt_params = get(chn, section = :internals)
     num_itrs = length(first(nt_params))
-    log_densities = map(1:num_itrs) do i
-        nt_params[:log_density][i]
-    end
-    log_densities ./ out.input.ξ
+    log_densities = nt_params.log_density ./ out.input.ξ
 end
 
-function test_mixing(out::PigeonsSolverOutput, log_n̄)
+function test_mixing(out::PigeonsSolverOutput, log_n̄; K = nothing)
     ξ = out.input.ξ
     obj_vec = get_objective_vec(out)
-    K = length(obj_vec)
+    if !isnothing(K)
+        obj_vec = StatsBase.sample(obj_vec, K)
+    end
     obj_max = maximum(obj_vec)
     obj_mean = mean(obj_vec)
     obj_std = std(obj_vec)
 
     T̂ = obj_max - obj_mean - (log_n̄ / ξ)
     z = T̂ / obj_std
-    p = cdf(Normal(0, 1), z)
-    @infiltrate
+#    p = cdf(Normal(0, 1), z)
 end
