@@ -2,6 +2,11 @@ struct MCMCSolver <: AbstractPolicySolver end
 
 struct TemperedMCMCSolver <: AbstractPolicySolver end
 
+struct MCMCSolverOutput{I, O} <: AbstractPolicyOutput
+    input::I
+    out::O
+end
+
 function get_best_policy(::MCMCSolver; initfun, objfun, nextfun, β::Real, kwargs...)
     sampler = PolicySampler(initfun, nextfun)
     model = TemperedPolicyObjective(objfun, β)
@@ -14,7 +19,8 @@ function get_best_policy(::MCMCSolver; initfun, objfun, nextfun, β::Real, kwarg
         sampler,
         num_rounds,
         chain_type = MCMCChains.Chains)
-    last(s).params
+
+    MCMCSolverOutput((; sampler, model), s)
 end
 
 function get_best_policy(::TemperedMCMCSolver; initfun, objfun, nextfun, β::Real, kwargs...)
