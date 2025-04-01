@@ -14,8 +14,8 @@ function get_best_policy(::PigeonsSolver; initfun, objfun, nextfun, β, kwargs..
         target = OuterHighDimensionalProblem(β, H),
         reference = OuterHighDimensionalProblem(0.0, H),
         record = [traces],
-        n_chains = 10,
-        n_rounds = 13,
+        n_chains = 4,
+        n_rounds = 10,
         explorer = H,
         multithreaded = false,
         show_report = false;

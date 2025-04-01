@@ -283,7 +283,20 @@ function plot_sol(net, out)
     plot_network(net; average_edges_to_upgrade = average_policy)
 end
 
+using HighDimensionalOptimalPolicies.Pigeons
+
 function run_solver(net, β)
+
+#=    result = pigeons(
+        target = toy_mvn_target(100),
+        checkpoint = true,
+        n_chains = 2,
+        multithreaded = true,
+        on = ChildProcess(
+                n_local_mpi_processes = 2))
+
+    asdf=#
+
     initfun, objfun, nextfun = let net = net
         initfun = rng -> get_initial_upgrade(rng, net)
         objfun = edges_to_upgrade -> begin
@@ -295,22 +308,38 @@ function run_solver(net, β)
     end
 
 
-    out = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β)
-    (; net, out)
-    last_policy = HDOP.get_last_policy(out)
-    average_policy = HDOP.get_average_policy(out)
-    p = plot_network(net; average_edges_to_upgrade = average_policy)
-    display(p)
+    out = HDOP.get_best_policy(HDOP.PigeonsSolver(); initfun, objfun, nextfun, β,
+        # Arguments only for Pigeons
+        n_chains = 2,
+        checkpoint = true,
+        on = ChildProcess(
+            n_local_mpi_processes = 2,
+            dependencies = [HighDimensionalOptimalPolicies, OptimalTransport]
+            )
+        )
+
+    out = @set out.pt = Pigeons.load(out.pt)
+
+    #(; net, out)
+    #last_policy = HDOP.get_last_policy(out)
+    #average_policy = HDOP.get_average_policy(out)
+  #  p = plot_network(net; average_edges_to_upgrade = average_policy)
+   # display(p)
 
     (; net, out)
 end
 
 function test_travel_network()
-    net = square_travel_network(5)
-    #net = random_travel_network(10)
-    β = 1
+    #net = square_travel_network(5)
+    net = random_travel_network(10)
+    β = 500
 
     (;net, out) = run_solver(net, β)
+    average_policy = HDOP.get_average_policy(out)
+    p = plot_network(net; average_edges_to_upgrade = average_policy)
+    display(p)
+
+    (; net, out)
 end
 
 
