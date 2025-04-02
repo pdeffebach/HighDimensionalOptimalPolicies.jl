@@ -318,13 +318,9 @@ function run_solver(net, β)
             )
         )
 
+    # When we do distributed computing, we need to grap
+    # in the data from other cores.
     out = @set out.pt = Pigeons.load(out.pt)
-
-    #(; net, out)
-    #last_policy = HDOP.get_last_policy(out)
-    #average_policy = HDOP.get_average_policy(out)
-  #  p = plot_network(net; average_edges_to_upgrade = average_policy)
-   # display(p)
 
     (; net, out)
 end
