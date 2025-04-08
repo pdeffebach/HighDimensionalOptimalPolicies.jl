@@ -325,10 +325,9 @@ function run_solver(net, β)
     (; net, out)
 end
 
-function test_travel_network()
+function test_travel_network(β, N)
     #net = square_travel_network(5)
-    net = random_travel_network(10)
-    β = 500
+    net = random_travel_network(N)
 
     (;net, out) = run_solver(net, β)
     average_policy = HDOP.get_average_policy(out)
