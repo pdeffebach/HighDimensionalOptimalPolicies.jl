@@ -1,0 +1,398 @@
+---
+title: "Understanding the Parallel Tempering Algorithm"
+engine: julia
+format:
+  html:
+    code-fold: false
+    embed-resources: true
+execute:
+  cache: false
+---
+
+This Quarto Notebook (a tool I am trying out for the first time) serves to explore how Parallel Tempering and other algorithms can be applied to an optimal transport problem. 
+
+This document highlights that, so far, I have not been able to set up an optimal transport problem with a PT algorithm that generates a "good" (in some subjective sense), level of mixing. 
+
+## The structure of this project
+
+The main output of this project is a package HighDimensionalOptimalPolicies.jl which implements a Parallel Tempering algorithm in two different was, one which leverages Pigeons.jl's Parallel Tempering algorithm as described in Syed et al. (2021), and another which I crudely implemented myself. 
+
+In a sub-directory, I created the project OptimalTransport.jl. OptimalTransport.jl is supposed to be the "average" project that would use HighDimensionalOptimalPolicies.jl as a dependency. I define a travel network and then test for various improvements to that travel network. OptimalTransport.jl is a Julia package, i.e. it has a package directory and everything is placed inside a `OptimalTransport` module. In practice, OptimalTranport.jl would probably be a Julia script, rather than a full on package. However in my experience, putting things in a package structure, then using Revise and setting the REPL to `eval` into the `OptimalTransport` module is a better development experience. 
+
+In this exercise, we will mostly be using OptimalTransport.jl, but it should be transparent how HighDimensionalOptimalPolicies.jl is used "under the hood."
+
+Lets start by loading up OptimalTransport.jl and exporting everything in the package for ease of use.
+
+```{julia}
+using Revise
+using OptimalTransport
+using Random
+using Plots
+using QuartoTools
+
+# Export all symbols in OptimalTransport for convenience
+function exportall(mod)
+    for n in names(mod, all = true)
+        if Base.isidentifier(n) && n ∉ (Symbol(mod), :eval)
+            @eval mod export $n
+        end
+    end
+end
+exportall(OptimalTransport)
+```
+
+## Exploring the travel network
+
+Let's start by generating a travel network. In particular, we 
+generate a "random" travel network, distributing points evenely in a 
+square. 
+
+Here we use a square travel network. As an alternative we can use use
+what I call a "random" travel network, which is where we scatter 
+points randomly around the [0, 1] square and then use a Delauney Triangulation to connect them. We don't want to make a travel network with a single easy-to-find optimum improvement, and I think this randomness helps us. But it makes it harder to visualize a "good"
+network. 
+
+Each node is a population center, and people "commute" between nodes,
+with commuting decisions taken according to travel time in a manner
+described by Allen and Arkolakis (2022).
+
+
+We specify the fraction of edges that will be upgraded with each 
+possible policy when we create the network. Here we say that 
+the government will decide to upgrade exactly 20 percent of edges. 
+
+```{julia}
+n_coords = 5^2
+diagonal_path = false
+unequal_pops = true
+net = square_travel_network(n_coords; 
+  diagonal_path = false, 
+  unequal_pops = true,
+  frac_upgrades = 0.2)
+plot_network(net)
+```
+
+The average welfare of this network is inversely proportional to the
+travel costs of the workers moving around this network. Because we 
+haven't made any travel network improvements yet, welfare is low 
+(very negative).
+
+```{julia}
+get_welfare(net)
+```
+
+## Running the Parallel Tempering to improve the travel network
+
+We get improvements to the travel nework with the function 
+`test_travel_network`. The inputs to the function are 
+
+* The solver: `HDOP.PTMCMCSolver`. `HDOP` stands for High Dimensional
+  Optimal Policies. In the future I will `export` stuff like this to 
+  be less verbose. `PTMCMCSolver` stands for Parallel Tempering MCMC
+  Solver. This is my (somewhat ad-hoc) implementation of the Parallel 
+  Tempering algorithm. As we will see later, we can swap out my 
+  algorithm for others. 
+* The maximum inverse temperature, `max_invtemp`, this is the $\beta$
+  the paper. 
+* The inverse temperature "curvature". This changes how spaced-apart
+  the inverse temperatures are. A value of `1` means the inverse
+  temperatures are equally spaced. A value less than `1` means the
+  inverse temperatures are "top-heavy", and are clustered towards
+  the maximum temperature. A value greater than `1` means the inverse
+  temperatures are "bottom-heavy" and are clustered towards `0`. See 
+  more on this below. We can also pass a vector of inverse temperatures
+  directly to this function if we want. 
+* The number of rounds per chain `n_inner_rounds`
+* The number of chains to use `n_chains`, which is the same as the number of 
+  inverse temperatures. 
+* The number of edges to swap for every new guess in the MCMC
+  algorithm, `n_edges_to_swap`. Unlike the other arguments, this keyword argument 
+  does not get passed directly to HighDimensionalOptimalPolicies.jl. 
+  Rather, it is used to make the *function* for getting a new guess
+  for the MCMC process. More on this below as well.  
+
+```{julia}
+#| julia:
+#|   cache:
+#|     enabled: true
+# The function returns (net, out), but net is already
+# defined above, so we throw that output away.
+(_, out) = test_travel_network(
+  HDOP.PTMCMCSolver(),
+  net; 
+  max_invtemp = 50,
+  invtemps_curvature = 2.0,
+  n_inner_rounds = 10^3,
+  n_chains = 20,
+  n_swap_rounds = 100,
+  n_edges_to_swap = 1)
+out
+```
+
+The output of this function is an object of type `MultiPTMCMCSolverOutput`, 
+which holds the policy guesses, objective values, and implementation
+details of the PT algorithm. The name `MultiPTMCMCSolverOutput` is 
+overly verbose and will be changed in the future. A `PTMCMCSolverOutput` 
+isa set of policy guesses and objective values for a *single* inverse
+temperature, and a `MultiPTMCMCSolverOutput` is a collection of 
+`PTMCMCSolverOutput`s. The goal is that all output and input types
+for all algorithms will share a type hierarchy and have a shared
+interface for accessing results. 
+
+### A note on the inverse temperatures
+
+When given a maximum temperature and a curvature value, 
+HighDimensionalOptimalPolicies.jl returns a vector of inverse 
+temperatures according to the following function. 
+
+```julia
+function make_invtemps(max_invtemp; length, invtemps_curvature)
+    @assert invtemps_curvature > 0
+    invtemps = (range(1, 0, length = length) .^ invtemps_curvature) .* max_invtemp
+end
+```
+
+So the inverse temperatures are a decreasing array with the maximum
+temperature first. 
+
+```{julia}
+top_heavy_temps = HDOP.make_invtemps(10.0; 
+  length = 5, 
+  invtemps_curvature = 0.5)
+1
+
+bottom_heavy_temps = HDOP.make_invtemps(10.0; 
+  length = 5, 
+  invtemps_curvature = 3.0)
+
+println("Top-heavvy inverse temperatures: ", top_heavy_temps)
+println("Bottom-heavy inverse temperatures: ", bottom_heavy_temps)
+```
+
+## The Parallel Tempering Algorithm
+
+The first thing the function `test_travel_network` does is create 
+three functions, `initfun`, `nextfun`, and `objfun`. Each function
+"captures" the network `net` in a closure so that the functions
+can be passed to HighDimensionalOptimalPolicies.jl, which doesn't
+need any understanding of what a network is. 
+
+* `initfun`: Draws at random a set of edges to upgrade. As mentioned
+  above, the number of edges to upgrade is a property of the network
+  itself, not the implementation of the algorithm (I don't remember
+  the reason for this, to be honest). To comply with the APIs of 
+  Pigeons and AbstractMCMC.jl, you need to pass a random number generator directly to `initfun`, such that it takes a single
+  argument, `initfun(rng)` returns a vector of booleans for which
+  edges get upgraded.  
+* `nextfun`: Given a current set of upgrades, what is a new policy 
+  guess? Like `initfun`, we need to pass a `rng`, such that this
+  function is called as `nextfun(rng, policy)`, where `policy` is
+  a vector of booleans. The behavior of `nextfun` is determined by 
+  `n_edges_to_swap`, passed above. To get a new policy guess, we 
+  randomly select `n_edges_to_swap` edges from the existing upgrades
+  and remove them. Then randomly select the same number of edges
+  that were not selected for upgrading and assign them to be upgraded.
+  A value of `1` gives slow mixing, whereas a higher value should give
+  fast mixing. 
+* `objfun`: For a given guess, what is the welfare? This is a
+  deterministic function of the policy and is called simply
+  `objfun(policy)`. 
+
+The implementation looks as follows. The user *has* to make these
+functions themselves. There's not way around it. 
+
+```{julia}
+# For demonstration purposes only. test_travel_network makes
+# these 
+initfun, objfun, nextfun = let net = net
+    n_edges_to_swap = 1
+    initfun = rng -> get_initial_upgrade(rng, net)
+    objfun = edges_to_upgrade -> begin
+        get_welfare(net, edges_to_upgrade)
+    end
+    nextfun = (rng, edges_to_upgrade) -> swap_edges_to_upgrade(rng, edges_to_upgrade, n_edges_to_swap)
+    initfun, objfun, nextfun
+end
+rng = Random.default_rng()
+state_init = initfun(rng)
+state_next = nextfun(rng, state_init)
+obj_guess = objfun(state_next)
+```
+
+These three functions, `initfun`, `objfun`, and `nextfun`, get sent
+do HighDimensionalOptimalPolicies.jl's `get_best_policy` function, 
+along with the inverse temperatures and other implementation details.
+
+The Parallel Tempering algorithm works as described in the paper. 
+In parallel (or, when parallelization is enabled), we perform a 
+Metropolis-Hastings sampling procedure with the likelihood function
+
+```julia
+exp(inverse_temperature * objfun(state))
+``` 
+
+when `inverse_temperature` is `0`, the algorithm simply takes i.i.d 
+draws from the state space and accepts all of them. *Note:* This 
+should be fixed because its a waste of computational resources, but
+it *is* useful to see the distribution of draws from the state space.
+
+## Exploring the output
+
+I have a standard API that allows you to learn about the optimal 
+policies regardless of what solver you choose (we will explore more
+solvers in detail later.) These functions are
+
+* `HDOP.get_policy_vec(out; ind = 1)`: For getting the vector of 
+  policies, where `ind` is the index of the inverse temperature, with
+  the highest inverse temperature being first. 
+* `HDOP.get_objective_vec(out; ind = 1)`: For analogously getting
+  the vector of objcetives.
+* `HDOP.get_last_policy(out; ind = 1)`: For getting the *last* policy
+  from a MCMC run, useful for aggregating across different independent
+  runs. 
+* `HDOP.test_mixing(out, log_n; ind = 1)`: For getting the mixing
+  statistic. 
+
+Because of the keyword argument `ind`, we can easily compare policies
+across different inverse temperatures. 
+
+Let's start by looking at how the optimal policy progressed across 
+many iterations. You can see that the objective values start low, 
+but quickly get higher and stay at a flat level for a long time. 
+This is good, because it means we have the potential for i.i.d 
+draws from the distribution of optimal transportation networks. 
+
+```{julia}
+plot_objective_time(out; ind = 1, last_half = false)
+```
+
+We can zoom in on the last half of the draws as well. This looks 
+a random walk!
+
+```{julia}
+plot_objective_time(out; ind = 1, last_half = true)
+```
+
+And now let's explore how the optimal policies vary across chains. 
+First, let's look at the temperatures for this run. See how "back-heavy"
+they are, which is a good way to generate lots of mixing. 
+
+```{julia}
+HDOP.get_invtemps(out)
+```
+
+How good is the mixing? To use the equation from the paper
+
+$$
+\hat{T} = \hat{W}_{\max} - \hat{W}_{\text{mean}} - \frac{\log \bar{n}}{\beta}
+$$
+
+where $\hat{T}$ should be distributed according to $\mathcal{N}(0, \sigma_{W})$.
+
+$\hat{W}_{\max}$ and $\hat{W}_{\text{mean}}$ are straightforward to calculate in HighDimensionalOptimalPolicies.jl, but to get the value 
+of $\log \bar{n}$ we need to use properties of the network. 
+
+$$
+\bar{n} = N_{\text{edges}} \text{ Choose } N_{\text{upgrades}}
+$$
+
+we use the function `lchoose` from SpecialFunctions.jl to calculate
+$\log \bar{n}$ accurately when there are many edges.  The `HDOP.test_mixing` gives the t-statistic for optimal mixing. 
+
+
+```{julia}
+HDOP.test_mixing(out, get_log_n(net))
+```
+
+Let's take a look at how the t-statistic varies across inverse
+temperatures. Interestingly, the t-stat does
+not seem to decrease with the inverse temperature. It seems basically
+random, and the t-statistic is always very large and negative. 
+
+
+```{julia}
+plot_mixing_stats(net, out; inds = 1:15)
+```
+
+The fact that the mixing statistics are basically random is especially
+confusing because the different inverse temperatures definitely
+generate very different distributions of optimal draws. The following
+graph shows the density of different objective distributions for
+each. 
+
+```{julia}
+plot_all_objectives(out)
+```
+
+If the mixing t-stat is always very large and negative, does that mean 
+we are stuck in some sort of local optimum and there is no variation
+in the policy draws? Lets make a few graphs of different policy draws
+to assess how different they are. They look reasonably different, to 
+be honest. 
+
+```{julia}
+ps = [plot_n_policies(net, out; n_policies = 1) for i in 1:6]
+plot(ps...)
+```
+
+We can take a look at the "average" policy with the following graph. 
+Here, edges are weighted by how often they are chosen to be upgraded. 
+
+```{julia}
+plot_average_policy(net, out)
+```
+
+## Using Pigeons.jl
+
+The above analysis was done with my ad-hoc implementation of 
+Parallel Tempering. What happens if we use a "real" version of PT?
+Let's try things with the Pigeons.jl package instead. To do this,
+we just swap out `HDOP.PTMCMCSolver()` with `HDOP.PigeonsSolver()`. 
+
+We also get rid of the `n_swap_rounds` keyword argument, because
+Pigeons.jl's number of swap rounds is determined by the total number
+of rounds (`n_inner_rounds`). And we get rid of the 
+`invtemps_curvature` argument, because Pigeons.jl has an optimal way 
+of setting the annealing schedule. 
+
+```{julia}
+#| julia:
+#|   cache:
+#|     enabled: true
+(_, outpigeons) = test_travel_network(
+  HDOP.PigeonsSolver(),
+  net; 
+  max_invtemp = 50,
+  n_inner_rounds = 10^3,
+  n_chains = 20,
+  n_edges_to_swap = 1)
+```
+
+Let's look at the mixing stats. We continue to see large and negative 
+mixing t-statistics, along with a non-monotonic relationship between 
+the inverse temperature and t-stat. 
+
+```{julia}
+println(HDOP.get_invtemps(outpigeons))
+plot_mixing_stats(net, outpigeons; inds = 1:15)
+```
+
+Let's have a look at the distribution of draws. Interestingly, the 
+distributions have a lot more overlap and are a lot smoother with 
+Pigeons.jl than with my ad-hoc implementation. This is likely due to 
+the optimal annealing schedule that the the algorithm uses. 
+
+```{julia}
+plot_all_objectives(outpigeons)
+```
+
+Finally, lets look at some of the networks. 
+
+```{julia}
+ps = [plot_n_policies(net, outpigeons; n_policies = 1) for i in 1:6]
+plot(ps...)
+```
+
+```{julia}
+println("Hello, Peter!")
+```

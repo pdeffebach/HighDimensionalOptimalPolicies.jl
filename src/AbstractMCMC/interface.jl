@@ -2,34 +2,25 @@
 # AbstractMCMC Interface #############################################
 ######################################################################
 
-# Handling the objective value #######################################
-
 """
-$SIGNATURES
+    $SIGNATURES
 
-Get the objective value for the current state.
+Return the non-exponentiated objective value of a given state.
 """
-function obj(model::PolicyObjective, params)
-    model.objfun(params)
-end
-
 function obj(model::TemperedPolicyObjective, params)
-    model.invtemp * model.objfun(params)
+   model.objfun(params)
 end
 
 """
-$SIGNATURES
+    $SIGNATURES
 
-Get the objective value of the current state, which is cached
-in the transition `t`, to avoid re-computing the policy objective.
+Return the non-exponentiated objective value of a given state, which
+has been cached in `t`.
 """
-function obj(::PolicyObjective, t::AbstractPolicyTransition)
-    t.obj
-end
-
 function obj(::TemperedPolicyObjective, t::AbstractPolicyTransition)
     t.obj
 end
+
 # Getting and setting parameters in the transition struct ############
 
 """
@@ -49,7 +40,11 @@ Create a new transition struct deviating from the current one.
 TODO: Understand why `t.accepted` gets passed forward here. I
 guess it refers to the last guess, not the current one?
 """
-function AbstractMCMC.setparams!!(model::AbstractPolicyObjective, t::PolicyTransition, params)
+function AbstractMCMC.setparams!!(
+    model::AbstractPolicyObjective,
+    t::PolicyTransition,
+    params)
+
     return PolicyTransition(
         params,
         obj(model, params),
@@ -64,7 +59,11 @@ $SIGNATURES
 
 Construct a transition object by calling the objective function.
 """
-function transition(sampler::PolicySampler, model::AbstractPolicyObjective, params, accepted)
+function transition(
+    sampler::AbstractPolicySampler,
+    model::AbstractPolicyObjective,
+    params,
+    accepted)
     objval = obj(model, params)
     return transition(sampler, model, params, objval, accepted)
 end
@@ -72,50 +71,28 @@ end
 """
 $SIGNATURES
 
-Construct a transition object by caching an existing objective value.
+Construct a transition object using a pre-computed objective value.
 """
-function transition(sampler::PolicySampler, model::AbstractPolicyObjective, params, objval::Real, accepted)
+function transition(
+    sampler::AbstractPolicySampler,
+    model::AbstractPolicyObjective,
+    params,
+    objval::Real,
+    accepted)
     return PolicyTransition(params, objval, accepted)
 end
 
-# New proposals for next policy guess ################################
-
 """
 $SIGNATURES
 
-Returns the initial policy guess, but first unwraps the policy
-sampler.
-"""
-function propose(rng::Random.AbstractRNG, sampler::PolicySampler, model::AbstractPolicyObjective)
-    return propose(rng, sampler.proposal, model)
-end
-
-"""
-$SIGNATURES
-
-Returns the initial policy guess.
+Return the initial policy guess.
 """
 function propose(
     rng::Random.AbstractRNG,
-    proposal::PolicyProposalCallable,
+    proposal::AbstractPolicySampler,
     model::AbstractPolicyObjective
 )
     return proposal(rng)
-end
-
-"""
-$SIGNATURES
-
-Returns the next policy guess, conditional on the current one,
-but first needs to unwrap the sampler.
-"""
-function propose(
-    rng::Random.AbstractRNG,
-    sampler::PolicySampler,
-    model::AbstractPolicyObjective,
-    transition_prev::PolicyTransition,
-)
-    return propose(rng, sampler.proposal, model, transition_prev.params)
 end
 
 """
@@ -125,11 +102,11 @@ Returns the next policy guess, conditional on the current one.
 """
 function propose(
     rng::Random.AbstractRNG,
-    proposal::PolicyProposalCallable,
+    sampler::AbstractPolicySampler,
     model::AbstractPolicyObjective,
-    t
+    transition_prev::AbstractPolicyTransition,
 )
-    return proposal(rng, t)
+    sampler(rng, transition_prev.params)
 end
 
 # Multiple Proposals #################################################
@@ -137,31 +114,31 @@ end
 """
 $SIGNATURES
 
-Returns a vector of initial guesses, after unwrapping the sampler.
+Returns a vector of initial guesses.
 """
 function propose(
     rng::Random.AbstractRNG,
-    proposals::AbstractArray{<:PolicyProposalCallable},
+    samplers::AbstractArray{<:AbstractPolicySampler},
     model::AbstractPolicyObjective,
 )
-    return map(proposals) do proposal
-        return propose(rng, proposal, model)
+    return map(samplers) do sampler
+        return propose(rng, sampler, model)
     end
 end
 
 """
 $SIGNATURES
 
-Returns a vector of initial gueses.
+Returns a vector of guesses, conditional on the current state.
 """
 function propose(
     rng::Random.AbstractRNG,
-    proposals::AbstractArray{<:PolicyProposalCallable},
+    samplers::AbstractArray{<:AbstractPolicySampler},
     model::AbstractPolicyObjective,
-    ts,
+    ts::AbstractArray{<:AbstractPolicyTransition},
 )
-    return map(proposals, ts) do proposal, t
-        return propose(rng, proposal, model, t)
+    return map(samplers, ts) do sampler, t
+        return propose(rng, sampler, model, t)
     end
 end
 
@@ -192,7 +169,7 @@ the guesses are named in some way.
     rng::Random.AbstractRNG,
     proposals::NamedTuple{names},
     model::AbstractPolicyObjective,
-    ts,
+    ts::NamedTuple{names},
 ) where {names}
     isempty(names) && return :(NamedTuple())
     expr = Expr(:tuple)
@@ -207,19 +184,24 @@ end
 ######################################################################
 
 """
-$SIGNATURES
+    $SIGNATURES
 
 Take a collection of guesses and their associated objective functions
-and acceptances (`PolicyTransition`)
+and acceptances (i.e. `AbstractPolicyTransition`s), and bundle
+them together to a vector of named tuples.
 
-In this method, the vector of transitions do not have names attached
+In this method, the `Vector` of transitions do not have names attached
 to the parameters, so we create a `NamedTuple` where each parameter
 has a name and return that vector of named tuples.
 
 We also include the objective values as the last value.
+
+TODO: This is be a really bad idea if we have, say, 10k
+parameters. Can we get by with something untyped without
+using a DataFrame?
 """
 function AbstractMCMC.bundle_samples(
-    transitions::Vector{<:PolicyTransition},
+    transitions::Vector{<:AbstractPolicyTransition},
     model::AbstractPolicyObjective,
     sampler::AbstractPolicySampler,
     state,
@@ -235,6 +217,7 @@ function AbstractMCMC.bundle_samples(
         param_names = deepcopy(param_names)
     end
 
+    # Add in the objective to the names
     push!(param_names, "obj")
 
     # Turn all the transitions into a vector-of-NamedTuple.
@@ -245,7 +228,7 @@ function AbstractMCMC.bundle_samples(
 end
 
 """
-$SIGNATURES
+    $SIGNATURES
 
 Take a collection of guesses and their associated objective functions
 and acceptances (`PolicyTransition`)
@@ -254,9 +237,9 @@ function AbstractMCMC.bundle_samples(
     ts::Vector{<:PolicyTransition{<:NamedTuple}},
     model::AbstractPolicyObjective,
     sampler::AbstractPolicySampler,
-    state,
+    state, # Not sure why this argument is here
     chain_type::Type{Vector{NamedTuple}};
-    param_names=missing,
+    param_names = missing,
     kwargs...
 )
     # If the element type of ts is NamedTuples, just use the names in the
@@ -271,60 +254,93 @@ end
 
 ######################################################################
 # MCMC Steps #########################################################
-
 ######################################################################
 
 """
 $SIGNATURES
 
-Initiailizes the MCMC algorithm. Returns a 2-tuple of the initial
-sample and the initial state. In our implementation, however,
-the transition struct contains all information needed for both
-the sample and the state, so we just return the same thing twice.
+Initiailizes the MCMC algorithm.
+
+Returns a 2-tuple of the initial sample and the initial state. In our
+implementation, however, the transition struct contains all
+information needed for both the sample and the state, so we just
+return the same thing twice.
 """
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
     model::TemperedPolicyObjective,
-    sampler::PolicySampler;
-    initial_params=nothing,
-    kwargs...
+    sampler::PolicySampler
 )
-    params = initial_params === nothing ? propose(rng, sampler, model) : initial_params
+    params = propose(rng, sampler, model)
     trans = transition(sampler, model, params, false)
+    return trans, trans
+end
+
+
+"""
+$SIGNATURES
+
+Initializes the MCMC algorithm with a givin initial parameter vector.
+"""
+function AbstractMCMC.step(
+    rng::Random.AbstractRNG,
+    model::TemperedPolicyObjective,
+    sampler::PolicySampler,
+    initial_params::AbstractVector{<:Real}
+)
+    trans = transition(sampler, model, initial_params, false)
     return trans, trans
 end
 
 """
 $SIGNATURES
 
-Continutes the Metropolis-Hastings algorithm.
-Returns a 2-tuple of the next sample and the next state.
-In our implementation, however, the transition struct contains
-all information needed for both the sample and the state, so
-we just return the same thing twice.
+Constitutes the Metropolis-Hastings algorithm.
+
+Conditional on a current state, draws a policy guess. Then, runs a
+Metropolis-Hastings comparison on the exponentiated versions of the
+state and the guess, according to the inverse temperature stored in
+`model`.
 """
 function AbstractMCMC.step(
     rng::Random.AbstractRNG,
     model::TemperedPolicyObjective,
     sampler::PolicySampler,
     transition_prev::PolicyTransition;
-    kwargs...
 )
+
+    invtemp = model.invtemp
+
+    if invtemp == 0
+        candidate = propose(rng, sampler, model)
+        objval_candidate = LogDensityProblems.logdensity(model, candidate)
+
+        # Always accept
+        trans = transition(sampler, model, candidate, objval_candidate, true)
+        return trans, trans
+    end
+
     # Generate a new proposal.
     candidate = propose(rng, sampler, model, transition_prev)
 
-    # Calculate the log acceptance probability and the log density of the candidate.
+    # Calculate the log acceptance probability and the log density of
+    # the candidate. objval is alreay logged
     objval_candidate = LogDensityProblems.logdensity(model, candidate)
 
-    logα = (objval_candidate - obj(model, transition_prev))
+    objval_curr = obj(model, transition_prev)
+    logα = invtemp * (objval_candidate - objval_curr)
+    accept_ratio = exp(logα)
 
-    # Decide whether to return the previous params or the new one.
-    trans = if -Random.randexp(rng) < logα
+    # We use <= here so has to always accept the new candidate
+    # when invtemp is equal to 0 (and thus avoid the rand call)
+    trans = if 1 <= accept_ratio
+        transition(sampler, model, candidate, objval_candidate, true)
+    elseif rand(rng) < accept_ratio
         transition(sampler, model, candidate, objval_candidate, true)
     else
         params = transition_prev.params
         objval = transition_prev.obj
-        PolicyTransition(params, objval, false)
+        transition(sampler, model, params, objval, false)
     end
 
     return trans, trans
@@ -333,6 +349,12 @@ end
 ######################################################################
 # Log Density Interface ##############################################
 ######################################################################
+
+#=
+Not sure why we implement the logdensity interface. It was
+necessary for MCMCTempering.jl, but since we aren't using that
+any more, we don't strictly need it.
+=#
 LogDensityProblems.logdensity(model::AbstractPolicyObjective, x) = obj(model, x)
 LogDensityProblems.logdensity(model::AbstractPolicyObjective, t::AbstractPolicyTransition) = t.obj
 
@@ -341,70 +363,3 @@ function LogDensityProblems.dimension(model::AbstractPolicyObjective)
     throw(ArgumentError("LogDensityProblems.dimension not implemented for <: AbstractPolicyObjective"))
 end
 LogDensityProblems.capabilities(::AbstractPolicyObjective) = LogDensityProblems.LogDensityOrder{0}()
-
-######################################################################
-# MCMCTempering ######################################################
-######################################################################
-MCMCTempering.getparams_and_logprob(t::AbstractPolicyTransition) = t.params, t.obj
-function MCMCTempering.setparams_and_logprob!!(t::AbstractPolicyTransition, params, obj)
-    return PolicyTransition(params, obj, false)
-end
-
-function MCMCTempering.compute_logdensities(
-    model::MCMCTempering.TemperedLogDensityProblem,
-    state,
-    state_other,
-)
-    return (
-        MCMCTempering.getlogprob(model.logdensity, state),                        # This we can just extract.
-        MCMCTempering.logdensity(model.logdensity, MCMCTempering.getparams(model, state_other)) # While this we need to compute.
-    )
-end
-
-function MCMCTempering.compute_logdensities(
-    model::MCMCTempering.TemperedLogDensityProblem,
-    model_other::MCMCTempering.TemperedLogDensityProblem,
-    state,
-    state_other,
-)
-    return MCMCTempering.compute_logdensities(model, state, state_other)
-end
-
-function AbstractMCMC.step(
-    rng::Random.AbstractRNG,
-    model::MCMCTempering.TemperedLogDensityProblem{<:TemperedPolicyObjective, L},
-    sampler::PolicySampler;
-    initial_params=nothing,
-    kwargs...
-) where {L}
-
-    params = initial_params === nothing ? propose(rng, sampler, model.logdensity) : initial_params
-    trans = transition(sampler, model.logdensity, params, false)
-    return trans, trans
-end
-
-function AbstractMCMC.step(
-    rng::Random.AbstractRNG,
-    model::MCMCTempering.TemperedLogDensityProblem{<:TemperedPolicyObjective, L},
-    sampler::PolicySampler,
-    transition_prev::PolicyTransition;
-    kwargs...
-) where {L}
-    # Generate a new proposal.
-    candidate = propose(rng, sampler, model.logdensity, transition_prev)
-    # Calculate the log acceptance probability and the log density of the candidate.
-    objval_candidate = LogDensityProblems.logdensity(model, candidate)
-
-    logα = (objval_candidate - LogDensityProblems.logdensity(model, transition_prev))
-
-    # Decide whether to return the previous params or the new one.
-    trans = if -Random.randexp(rng) < logα
-        transition(sampler, model.logdensity, candidate, objval_candidate, true)
-    else
-        params = transition_prev.params
-        objval = transition_prev.obj
-        PolicyTransition(params, objval, false)
-    end
-
-    return trans, trans
-end
