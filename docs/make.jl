@@ -11,6 +11,7 @@ makedocs(;
     ),
     pages = Any[
         "Introduction" => "index.md",
+        "Tutorial" => "tutorial.md",
         "Mathematical Appendix" => "math.md",
         "Optimal Transport Example" => "optimal_transport.md",
         "References" => "references.md",
