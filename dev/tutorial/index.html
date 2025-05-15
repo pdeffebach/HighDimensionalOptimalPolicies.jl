@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tutorial · High Dimensional Optimal Policies</title><meta name="title" content="Tutorial · High Dimensional Optimal Policies"/><meta property="og:title" content="Tutorial · High Dimensional Optimal Policies"/><meta property="twitter:title" content="Tutorial · High Dimensional Optimal Policies"/><meta name="description" content="Documentation for High Dimensional Optimal Policies."/><meta property="og:description" content="Documentation for High Dimensional Optimal Policies."/><meta property="twitter:description" content="Documentation for High Dimensional Optimal Policies."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">High Dimensional Optimal Policies</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Introduction</a></li><li class="is-active"><a class="tocitem" href>Tutorial</a><ul class="internal"><li><a class="tocitem" href="#Set-up"><span>Set-up</span></a></li><li><a class="tocitem" href="#Implementing-get_best_policy"><span>Implementing <code>get_best_policy</code></span></a></li><li><a class="tocitem" href="#Exploring-the-output"><span>Exploring the output</span></a></li><li><a class="tocitem" href="#Parallel-Tempering-with-Pigeons.jl"><span>Parallel Tempering with Pigeons.jl</span></a></li><li><a class="tocitem" href="#Independent-Simulated-Annealing-runs"><span>Independent Simulated Annealing runs</span></a></li><li><a class="tocitem" href="#Comparing-inverse-temperatures"><span>Comparing inverse temperatures</span></a></li></ul></li><li><a class="tocitem" href="../math/">Mathematical Appendix</a></li><li><a class="tocitem" href="../optimal_transport/">Optimal Transport Example</a></li><li><a class="tocitem" href="../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Tutorial</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tutorial</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/pdeffebach/HighDimensionalOptimalPolicies.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/pdeffebach/HighDimensionalOptimalPolicies.jl/blob/main/docs/src/tutorial.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Tutorial"><a class="docs-heading-anchor" href="#Tutorial">Tutorial</a><a id="Tutorial-1"></a><a class="docs-heading-anchor-permalink" href="#Tutorial" title="Permalink"></a></h1><p>Here we set up a simple high dimensional problem and outline the algorithms this package provides to characterize optimal policies. </p><h2 id="Set-up"><a class="docs-heading-anchor" href="#Set-up">Set-up</a><a id="Set-up-1"></a><a class="docs-heading-anchor-permalink" href="#Set-up" title="Permalink"></a></h2><p>We start by importing the HighDimensionalOptimalPolicies.jl package, along with Plots.jl, which will help us visualize results. </p><pre><code class="language-julia hljs">using HighDimensionalOptimalPolicies
+using Plots, StatsPlots
+using Random, Distributions
+using LinearAlgebra, SpecialFunctions
+using StatsBase</code></pre><p>Next we define a simple high dimensional problem. Consider a vector of random numbers of length <span>$L$</span>, denoted <span>$\vec{r}$</span>. Our goal is to find a policy vector <span>$\vec{p}$</span> of length <span>$L$</span> filled with zeros and exactly <span>$L_p$</span> ones. We want to choose the locations of the ones to maximize</p><p class="math-container">\[W(\vec{p}) = \vec{p} \cdot \vec{r}\]</p><p>This is a convenient set-up to analyze high dimensional optimal policies because the state space is very large, <span>$L \text{ Choose } L_p$</span> and if <span>$\vec{r}$</span> is well chosen, then there may be many policies with similar welfare values. </p><h2 id="Implementing-get_best_policy"><a class="docs-heading-anchor" href="#Implementing-get_best_policy">Implementing <code>get_best_policy</code></a><a id="Implementing-get_best_policy-1"></a><a class="docs-heading-anchor-permalink" href="#Implementing-get_best_policy" title="Permalink"></a></h2><p>For concreteness, we will think of <span>$L$</span> as the total number of nodes on a transportation network and <span>$L_p$</span> as the number of edges to upgrade, where we want to try and upgrade edges that have the highest value. </p><pre><code class="language-julia hljs">n_edges = 1000
+n_edges_to_upgrade = 500
+network_values = sort(rand(LogNormal(1.0), n_edges), rev = true)
+network_values = network_values ./ norm(network_values)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1000-element Vector{Float64}:
+ 0.21237168799710915
+ 0.19725588836849667
+ 0.17377890085400483
+ 0.15546446141661968
+ 0.14937109812552962
+ 0.14901454979888465
+ 0.14324075643333878
+ 0.13463215418540708
+ 0.13210019290740355
+ 0.12957534576322788
+ ⋮
+ 0.0011387003853571957
+ 0.0010866794997492803
+ 0.0010343568277687656
+ 0.0009257733618544254
+ 0.0007979270339971101
+ 0.0007590653774902928
+ 0.0007194413835504225
+ 0.0004624496854346146
+ 0.00039136501150705824</code></pre><p>Our goal is to call the function <code>get_best_policy</code> from HighDimensionalOptimalPolicies.jl. To do this, we need to define three functions ourselves</p><ul><li>A function for drawing initial guesses from the policy state space</li><li>A function for drawing the <em>next</em> guess conditional on the current guess</li><li>The objective function</li></ul><p>HighDimensionalOptimalPolicies.jl requires passing a random number generator (<code>rng</code>) to the initial-guess and next-guess functions. We use a <code>let</code> block to capture global variables when we define these functions in order to improve performance and reduce bugs (in case a global variable gets redefined). </p><pre><code class="language-julia hljs">initfun = let n_edges = n_edges, n_edges_to_upgrade = n_edges_to_upgrade
+	rng -&gt; begin
+		fill(false, n_edges_to_upgrade)
+		inds = sample(rng, 1:n_edges, n_edges_to_upgrade; replace = false)
+		p = fill(false, n_edges)
+		p[inds] .= true
+		p
+	end
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">#1 (generic function with 1 method)</code></pre><p>To choose the next policy, conditional on the current one, we simply choose a pair of two policies and edges and then swap whether or not they are upgraded. That is, we randomly select an edge which is non-upgraded under the current guess and choose to upgrade it. We also randomly select an edge which is upgraded under the current guess and choose not to upgrade it. </p><pre><code class="language-julia hljs">nextfun =  let n_edges = n_edges, n_edges_to_upgrade = n_edges_to_upgrade
+	(rng, state) -&gt; begin
+		upgraded_edges = findall(state)
+		not_upgraded_edges = findall(==(false), state)
+
+		edge_to_drop = sample(rng, upgraded_edges)
+		edge_to_add = sample(rng, not_upgraded_edges)
+
+		new_edges_to_upgrade = copy(state)
+		new_edges_to_upgrade[edge_to_drop] = false
+		new_edges_to_upgrade[edge_to_add] = true
+
+		new_edges_to_upgrade
+	end
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">#3 (generic function with 1 method)</code></pre><p>Finally, we define the objective function. Because the objective function is deterministic, we do not need to pass the random number generator to this function. However, we still use a <code>let</code> block to capture the transportation network values. </p><pre><code class="language-julia hljs">objfun = let network_values = network_values
+	state -&gt; begin
+		dot(state, network_values)
+	end
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">#5 (generic function with 1 method)</code></pre><p>Now, we we run the Parallel Tempering algorithm to get a set of optimal policies. We specify the following arguments</p><ul><li><code>max_invtemp</code>: The maximum inverse temperature</li><li><code>invtemps_curvature</code>: The way inverse temperatures &quot;ramp up&quot; from zero to the highest value (see below for deatils)</li><li><code>n_invtemps</code>: The number of inverse temperatures to use. This is synonymous with the number of &quot;chains&quot; to run with the Parallel Tempering algorithm</li><li><code>n_inner_rounds</code>: The total number of policy draws we will take</li><li><code>n_swap_rounds</code>: The number of swap rounds, i.e. the number of times the inverse temperatures &quot;meet up&quot; and randomly swap their policy states. </li></ul><pre><code class="language-julia hljs">out = get_best_policy(
+	PTMCMCSolver();
+	initfun = initfun,
+	nextfun = nextfun,
+	objfun = objfun,
+	max_invtemp = 50.0,
+	invtemps_curvature = 2.0,
+	n_invtemps = 10,
+	n_inner_rounds = 10000,
+	n_swap_rounds = 100)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MultiPTMCMCSolverOutput with 10 temperatures and maximum temperature 50.0
+</code></pre><h3 id="The-inverse-temperatures"><a class="docs-heading-anchor" href="#The-inverse-temperatures">The inverse temperatures</a><a id="The-inverse-temperatures-1"></a><a class="docs-heading-anchor-permalink" href="#The-inverse-temperatures" title="Permalink"></a></h3><p>Note that in the above example, we did not choose the vector of inverse temperatures directly, rather we chose a maximum inverse temperature (<code>max_invtemp</code>) and a curvature. </p><p>This is controlled by the function <code>make_invtemps</code>. A value between greater than 1 of <code>invtemps_curvature</code> causes means many inverse temperatures are close to zero, with a slow ramp-up, while a value between 0 and 1 means many temperatures close to the maximum temperature. </p><div class="admonition is-info" id="Note-ee9ad2bd11888d4e"><header class="admonition-header">Note<a class="admonition-anchor" href="#Note-ee9ad2bd11888d4e" title="Permalink"></a></header><div class="admonition-body"><p>The inverse temperatures produced by <code>make_invtemps</code>, and <em>all</em> output of <code>get_best_policy</code> are organized with the highest temperature <em>first</em>. </p></div></div><pre><code class="language-julia hljs">max_invtemp = 25.0
+n_invtemps = 20
+invtemps_g1 = make_invtemps(25.0, length = n_invtemps, invtemps_curvature = 2.0)
+invtemps_1 = make_invtemps(25.0, length = n_invtemps, invtemps_curvature = 1.0)
+invtemps_l1 = make_invtemps(25.0, length = n_invtemps, invtemps_curvature = 0.5)
+plot(1:n_invtemps, [invtemps_g1 invtemps_1 invtemps_l1];
+	xlab = &quot;Inverse temperature index&quot;,
+	ylab = &quot;Inverse temperature&quot;,
+	label = [&quot;Curvature = 2.0&quot; &quot;Curvature = 1.0&quot; &quot;Curvature = 0.5&quot;])</code></pre><img src="5ee8e55e.svg" alt="Example block output"/><p>In general, you want to use an <code>invtemps_curvature</code> greater than <code>1</code> to ensure sufficient mixing. </p><h2 id="Exploring-the-output"><a class="docs-heading-anchor" href="#Exploring-the-output">Exploring the output</a><a id="Exploring-the-output-1"></a><a class="docs-heading-anchor-permalink" href="#Exploring-the-output" title="Permalink"></a></h2><p>We use the functions <code>get_objective_vec</code> and <code>get_policy_vec</code> and to inspect our output. To start, let&#39;s plot out objective values across time to see how the algorithm converged from drawing uniformly from the state space of policies to drawing from the distribution of optimal policies. We use the keyword argument <code>only_last_half</code> to tell <code>get_objective_vec</code> that we want the objective value from <em>all</em> iterations, including the initial burn-in period which are unlikely to be optimal draws. </p><p>Here we see that in the last half of the iterations, the objective value resembles a random walk, indicating we have settled on a set of optimal policies. </p><pre><code class="language-julia hljs">function plot_objectives_time(out; only_last_half = false, ind = 1)
+    objvec = get_objective_vec(out; only_last_half, ind)
+    plot(
+        1:length(objvec),
+        objvec,
+        xlab = &quot;Iteration&quot;,
+        ylab = &quot;Objective value&quot;,
+        label = false,
+        color = &quot;black&quot;)
+end
+
+plot_objectives_time(out)</code></pre><img src="94083679.svg" alt="Example block output"/><p>What can we learn about the optimal policies? Recall that our vector of network values was sorted from the highest value to the lowest. As a consequence, we should see lots of improved edges close close to the front of the vector. </p><p>Here we see that edges close to the front of the vector are almost always improved, while those close to the back of the vector are almost never improved. </p><p>In this example, we know that the optimal policy <em>in general</em> is to improve the first 100 edges. However we clearly are not stuck in this global optimum, because at index 100, edges are being improved at far less than 100% of the time. </p><pre><code class="language-julia hljs">plot_mean_policy = function(out)
+    pvec = get_policy_vec(out)
+    # You can also do get_average_policy(out)
+    mean_policy = mean(pvec)
+    plot(
+        1:length(mean_policy),
+        mean_policy .* 100,
+        xlab = &quot;Edge index&quot;,
+        ylab = &quot;Percent of iterations with improvement&quot;,
+        label = false,
+        color = &quot;black&quot;,
+        xticks = 0:100:n_edges,
+        ylim = (0, 100))
+end
+plot_mean_policy(out)</code></pre><img src="99be4e1e.svg" alt="Example block output"/><h3 id="Testing-for-optimal-mixing"><a class="docs-heading-anchor" href="#Testing-for-optimal-mixing">Testing for optimal mixing</a><a id="Testing-for-optimal-mixing-1"></a><a class="docs-heading-anchor-permalink" href="#Testing-for-optimal-mixing" title="Permalink"></a></h3><p>The function <code>test_mixing</code> returns a <code>t-statistic</code> for whether the objective values drawn using our algorithm are drawn from the set of optimal policies. To use this function, however, we need to account for the log of the size of the state space, <code>log_n</code>. For our current example, <span>$1000 \text{ Choose } 100$</span> is such a large number Julia cannot calculate it without an overflow! We use the function <code>logabsbinomial</code> from SpecialFunctions.jl instead, which gives us the log of the size of the state space for this problem. </p><p>For more information, see <a href="../references/#kreindler2023">Kreindler <em>et al.</em> [1]</a></p><pre><code class="language-julia hljs">log_n = SpecialFunctions.logabsbinomial(n_edges, n_edges_to_upgrade)[1]
+test_mixing(out, log_n)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">-67.74890178807011</code></pre><p>This low value indicates we are <em>highly</em> confident that we are drawing from the the optimal set of policies. </p><h3 id="Parallelization"><a class="docs-heading-anchor" href="#Parallelization">Parallelization</a><a id="Parallelization-1"></a><a class="docs-heading-anchor-permalink" href="#Parallelization" title="Permalink"></a></h3><p>The algorithm <code>PTMCMCSolver</code> uses the Distributed standard library&#39;s <code>pmap</code> for parallelization, so parallalelization happens automatically depending on the number of cores Julia is running with. </p><h2 id="Parallel-Tempering-with-Pigeons.jl"><a class="docs-heading-anchor" href="#Parallel-Tempering-with-Pigeons.jl">Parallel Tempering with Pigeons.jl</a><a id="Parallel-Tempering-with-Pigeons.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Parallel-Tempering-with-Pigeons.jl" title="Permalink"></a></h2><p>In addition to our &quot;naive&quot; implementation of Parallel Tempering, we also provide an interface for the Parallel Tempering algorithm of <a href="../references/#syed2022">Syed <em>et al.</em> [2]</a>, as implemented by Pigeons.jl. To use Pigeons.jl, we use the <code>PigeonsSolver()</code>. We also omit the keyword argument <code>invtemps_curvature</code>, because the algorithm optimally chooses the annealing schedule, and the keyword argument <code>n_swap_rounds</code>, because the number of swap rounds is deterministically set by the number of rounds.</p><pre><code class="language-julia hljs">out_pigeons = get_best_policy(
+	PigeonsSolver();
+	initfun = initfun,
+	nextfun = nextfun,
+	objfun = objfun,
+	max_invtemp = 50.0,
+	n_invtemps = 10,
+	n_inner_rounds = 10000)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MultiPigeonsSolverOutput with 10 temperatures and maximum temperature 50.0
+</code></pre><p>We can compare the optimally chosen inverse temperatures chosen by Pigeons.jl with the ones we created using <code>invtemps_curvaturre</code></p><pre><code class="language-julia hljs">println(get_invtemps(out))
+println(get_invtemps(out_pigeons))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">[50.0, 39.50617283950617, 30.246913580246915, 22.22222222222222, 15.432098765432102, 9.876543209876543, 5.555555555555555, 2.4691358024691357, 0.6172839506172839, 0.0]
+[50.0, 42.65180028194539, 35.25711668590781, 28.831712386699316, 23.743478149158182, 18.034755687154266, 12.708977302511432, 8.294161090590432, 4.109321486951405, 0.0]</code></pre><p>And compare the average policy with the output using Pigeons.jl</p><pre><code class="language-julia hljs">plot_mean_policy(out_pigeons)</code></pre><img src="1c347371.svg" alt="Example block output"/><h3 id="Parallelization-with-Pigeons.jl"><a class="docs-heading-anchor" href="#Parallelization-with-Pigeons.jl">Parallelization with Pigeons.jl</a><a id="Parallelization-with-Pigeons.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Parallelization-with-Pigeons.jl" title="Permalink"></a></h3><p>Pigeons.jl does not use the Distributed standard library for parallelization. Rather, it uses the MPI distributed computing protocol to spawn sub-processes, and then aggregates those sub-processes together manually. To use this, you must have MPI installed on your machine. See instructions <a href="https://webpages.charlotte.edu/abw/coit-grid01.uncc.edu/ParallelProgSoftware/Software/OpenMPIInstall.pdf">here</a> to download MPI on Linux. On a computing cluster, you may also need to initialiate your session with MPI-related flags. See <a href="https://www.bu.edu/tech/support/research/system-usage/running-jobs/interactive-mpi/">here</a> for instructions on Boston University&#39;s computing cluster. </p><p>To use Pigeons.jl&#39;s parallelization, we use the <code>PigeonsMPISolver()</code> solver, and specify the number of child processes to spawn. If you have additional dependencies needed for your <code>initfun</code>, <code>nextfun</code>, and <code>objfun</code> to work, besides your <code>Main</code> module and <code>HighDimensionalOptimalPolicies</code>, you need to pass these dependencies to each child process using the <code>dependencies</code> keyword argument. You must also have Pigeons.jl installed in your current environment. For instance, we use <code>StatsBase.sample</code> along with <code>LinearAlgebra.dot</code>, so we pass these modules as dependencies. </p><pre><code class="language-julia hljs">out_pigeons_mpi = get_best_policy(
+	PigeonsMPISolver(); 
+	initfun = initfun,
+	nextfun = nextfun, 
+	objfun = objfun, 
+	max_invtemp = 50.0,
+	n_invtemps = 10,
+	n_inner_rounds = 100,
+	n_local_mpi_processes = 2,
+	n_threads = 2, 
+	dependencies = [StatsBase, LinearAlgebra])</code></pre><h2 id="Independent-Simulated-Annealing-runs"><a class="docs-heading-anchor" href="#Independent-Simulated-Annealing-runs">Independent Simulated Annealing runs</a><a id="Independent-Simulated-Annealing-runs-1"></a><a class="docs-heading-anchor-permalink" href="#Independent-Simulated-Annealing-runs" title="Permalink"></a></h2><p>An alternative to Parallel Tempering is to simply run many independent runs of a Simulated Annealing algorithm. We do this with the <code>IndependentSimulatedAnnealingSolver</code> solver. Here <code>n_inner_rounds</code> refers to the number of Metropolis-Hastings steps for a given temperature</p><pre><code class="language-julia hljs">out_sa = get_best_policy(
+    IndependentSimulatedAnnealingSolver();
+    initfun = initfun,
+    nextfun = nextfun,
+    objfun = objfun,
+    max_invtemp = 50.0,
+    invtemps_curvature = 2.0,
+    n_invtemps = 10,
+    n_inner_rounds = 1000,
+    n_independent_runs = 500)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">MultiMCMCSolverOutput with 10 temperatures and maximum inverse temperature 50.0
+</code></pre><p>Note that the average policy shows a smoother decay from the start of the edge vector to the end. This is because, since simulated annealing runs are independent, the algorithm does not get stuck improving particular edges for a long amount of time, as occurs in Parallel Tempering, where policies are generated using an (ergodic) sequence of Metropolis-Hastings draws. </p><pre><code class="language-julia hljs">plot_mean_policy(out_sa)</code></pre><img src="f5d525ad.svg" alt="Example block output"/><h2 id="Comparing-inverse-temperatures"><a class="docs-heading-anchor" href="#Comparing-inverse-temperatures">Comparing inverse temperatures</a><a id="Comparing-inverse-temperatures-1"></a><a class="docs-heading-anchor-permalink" href="#Comparing-inverse-temperatures" title="Permalink"></a></h2><p>As discussed above (and in the mathematical appendix), there is a tension between mixing and optimality. </p><pre><code class="language-julia hljs">function plot_all_objectives(out)
+    p = plot()
+    invtemps = get_invtemps(out)
+
+    for ind in 1:(length(invtemps))
+        obj = get_objective_vec(out; ind)
+        label = invtemps[ind]
+        density!(p, obj; label = label, line_z = invtemps[ind], zcolor = invtemps[ind], palette = cgrad(:grays))
+    end
+    p
+end
+plot_all_objectives(out)</code></pre><img src="2fade420.svg" alt="Example block output"/></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« Introduction</a><a class="docs-footer-nextpage" href="../math/">Mathematical Appendix »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.11.3 on <span class="colophon-date" title="Thursday 15 May 2025 20:04">Thursday 15 May 2025</span>. Using Julia version 1.11.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
