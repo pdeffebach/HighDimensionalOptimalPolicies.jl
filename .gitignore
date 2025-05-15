@@ -31,6 +31,9 @@ examples/OptimalTransport/results/
 # environment.
 Manifest.toml
 
+
+docs/Manifest.toml
+
 *.ipynb
 
 .ipynb_checkpoints
