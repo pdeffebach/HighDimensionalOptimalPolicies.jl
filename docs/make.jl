@@ -18,3 +18,9 @@ makedocs(;
     ],
     plugins = [bib]
 )
+
+deploydocs(
+    repo = "github.com/pdeffebach/HighDimensionalOptimalPolicies.jl.git",
+    target = "build",
+    deps = nothing,
+    make = nothing)
