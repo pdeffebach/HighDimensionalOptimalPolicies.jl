@@ -342,10 +342,13 @@ Below is an example of using the `-t` option to run an an array job using Slurm 
 
 # Specify that we will be running an Array job with 25 tasks numbered 1-25
 #$ -t 1-25
+
 # Request 1 core for my job
 #$ -pe omp 1
+
 # Give a name to my job
 #$ -N optimal_policies
+
 # Join the output and error streams
 #$ -j y
 
@@ -363,19 +366,20 @@ out = get_best_policy(...)
 save_policy_output_csv(oudir = "tmp_output")
 ```
 
-Then in an additional session, you can read in the results saved by the various tasks in this array job with by calling `MultiCSVPolicyOutput`. 
+Then in an additional session, you can read in the results saved by the various tasks in this array job with by calling `MultiCSVPolicyOutput("tmp_output")`. 
 
 ### Casting Policy Outputs to DataFrames for Manual Saving
 
  To convert to DataFrames, use the function `Tables.dictcolumntable` as an intermediate tabular representation of a policy output.  
 
-```@example main
+```julia
 df = DataFrame(Tables.dictcolumntable(out))
 ```
 
 We use an intermediate representation because HighDimensionalOptimalPolicies.jl does not have DataFrames.jl as a dependency. 
 
 ## Running Many Parralel Jobs within the same Julia session
+
 
 
 
