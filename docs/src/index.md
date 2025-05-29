@@ -12,7 +12,7 @@ Often, however, policymakers have a multitude of levers at their disposal, and f
 * How many buses should go on each route? 
 * Which routes should have separate Bus Rapid Transit lanes? Which should have normal lanes? 
 
-In this instance, the state space of policy choices is so large that it is impossible to characterize a single "best" policy. Moreover, policymakers might have other considerations not fully captured in an economist's simplified model of the economy, and would prefer a menu of candidate policies rather than one answer by itself. Finally, it may also be useful to learn what "qualities" are associated with a *set* of optimal policies rather than analyze one policy on its own. 
+In this instance, the state space of policy choices is so large that it is impossible to characterize a single "best" policy. Additionally, the problem is not convex, such that an interative procedure is unlike to find the globally optimum solution. Finally, policymakers might have other considerations not fully captured in an economist's simplified model of the economy, and would prefer a menu of candidate policies rather than one answer by itself. Finally, it may also be useful to learn what "qualities" are associated with a *set* of optimal policies rather than analyze one policy on its own. 
 
 While optimal transportation policy is the main motivation of this package and will serve as it's guiding example, the same reasoning can be applied to any economic problem where the state space of policy levers is large, for instance place-based policies where resources are distributed across many different locations, or a tax system where taxes must be levied on a wide variety of goods. 
 
