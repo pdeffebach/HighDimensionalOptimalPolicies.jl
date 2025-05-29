@@ -6,11 +6,14 @@ module HighDimensionalOptimalPolicies
 
 using Random
 using Distributions
-
-using Tables
-using StatsBase
 using Statistics
 using Distributed
+
+using Tables
+using CSV
+using OrderedCollections
+using StatsBase
+using SplitApplyCombine
 
 using AbstractMCMC
 using MCMCChains
@@ -57,23 +60,26 @@ export PigeonsMPISolver
 export PigeonsSolverOutput
 export MultiPigeonsSolverOutput
 
+export save_policy_output_csv
+export CSVPolicyOutput
+export MultiCSVPolicyOutput
+export Tables
 
 ######################################################################
 # Includes ###########################################################
 ######################################################################
 
-include("shared.jl")
+include("shared/policy_api.jl")
+include("shared/saving.jl")
 
-include("SimpleMCMC/api.jl")
+include("simplemcmc/api.jl")
 
-include("AbstractMCMC/typedef.jl")
-include("AbstractMCMC/interface.jl")
-include("AbstractMCMC/api_no_pt.jl")
-include("AbstractMCMC/api_pt.jl")
+include("abstractmcmc/typedef.jl")
+include("abstractmcmc/interface.jl")
+include("abstractmcmc/api_no_pt.jl")
+include("abstractmcmc/api_pt.jl")
 
-include("Pigeons/interface.jl")
-include("Pigeons/api.jl")
-
-include("Testing/testing.jl")
+include("pigeons/interface.jl")
+include("pigeons/api.jl")
 
 end # module

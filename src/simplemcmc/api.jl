@@ -1,6 +1,6 @@
 struct SimpleMCMCSolver <: AbstractPolicySolver end
 
-struct SimpleMCMCSolverOutput{VP, VO, I}
+struct SimpleMCMCSolverOutput{VP, VO, I} <: AbstractPolicyOutput
     params::VP
     objs::VO
     invtemp::I
