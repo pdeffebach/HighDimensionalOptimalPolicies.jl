@@ -170,3 +170,7 @@ highest inverse temperature first.
 function test_mixing(out::AbstractMultiPolicyOutput, log_n; K = nothing, ind = 1)
     test_mixing(out.v[ind], log_n; K)
 end
+
+function get_num_invtemps(out::AbstractMultiPolicyOutput)
+    length(get_invtemps(out))
+end

@@ -15,6 +15,7 @@ using Plots, StatsPlots
 using Random, Distributions
 using LinearAlgebra, SpecialFunctions
 using StatsBase
+using DataFrames
 ```
 
 Next we define a simple high dimensional problem. Consider a vector of random numbers of length ``L``, denoted ``\vec{r}``. Our goal is to find a policy vector ``\vec{p}`` of length ``L`` filled with zeros and exactly ``L_p`` ones. We want to choose the locations of the ones to maximize
@@ -46,13 +47,13 @@ HighDimensionalOptimalPolicies.jl requires passing a random number generator (`r
 
 ```@example main
 initfun = let n_edges = n_edges, n_edges_to_upgrade = n_edges_to_upgrade
-	rng -> begin
-		fill(false, n_edges_to_upgrade)
-		inds = sample(rng, 1:n_edges, n_edges_to_upgrade; replace = false)
-		p = fill(false, n_edges)
-		p[inds] .= true
-		p
-	end
+    rng -> begin
+        fill(false, n_edges_to_upgrade)
+        inds = sample(rng, 1:n_edges, n_edges_to_upgrade; replace = false)
+        p = fill(false, n_edges)
+        p[inds] .= true
+        p
+    end
 end
 ```
 
@@ -60,19 +61,19 @@ To choose the next policy, conditional on the current one, we simply choose a pa
 
 ```@example main
 nextfun =  let n_edges = n_edges, n_edges_to_upgrade = n_edges_to_upgrade
-	(rng, state) -> begin
-		upgraded_edges = findall(state)
-		not_upgraded_edges = findall(==(false), state)
+    (rng, state) -> begin
+        upgraded_edges = findall(state)
+        not_upgraded_edges = findall(==(false), state)
 
-		edge_to_drop = sample(rng, upgraded_edges)
-		edge_to_add = sample(rng, not_upgraded_edges)
+        edge_to_drop = sample(rng, upgraded_edges)
+        edge_to_add = sample(rng, not_upgraded_edges)
 
-		new_edges_to_upgrade = copy(state)
-		new_edges_to_upgrade[edge_to_drop] = false
-		new_edges_to_upgrade[edge_to_add] = true
+        new_edges_to_upgrade = copy(state)
+        new_edges_to_upgrade[edge_to_drop] = false
+        new_edges_to_upgrade[edge_to_add] = true
 
-		new_edges_to_upgrade
-	end
+        new_edges_to_upgrade
+    end
 end
 ```
 
@@ -80,9 +81,9 @@ Finally, we define the objective function. Because the objective function is det
 
 ```@example main
 objfun = let network_values = network_values
-	state -> begin
-		dot(state, network_values)
-	end
+    state -> begin
+        dot(state, network_values)
+    end
 end
 ```
 
@@ -96,15 +97,15 @@ Now, we we run the Parallel Tempering algorithm to get a set of optimal policies
 
 ```@example main
 out = get_best_policy(
-	PTMCMCSolver(); 
-	initfun = initfun,
-	nextfun = nextfun, 
-	objfun = objfun, 
-	max_invtemp = 50.0,
-	invtemps_curvature = 2.0,
-	n_invtemps = 10,
-	n_inner_rounds = 10000,
-	n_swap_rounds = 100)
+    PTMCMCSolver(); 
+    initfun = initfun,
+    nextfun = nextfun, 
+    objfun = objfun, 
+    max_invtemp = 50.0,
+    invtemps_curvature = 2.0,
+    n_invtemps = 10,
+    n_inner_rounds = 10000,
+    n_swap_rounds = 100)
 ```
 
 ### The inverse temperatures
@@ -114,7 +115,7 @@ Note that in the above example, we did not choose the vector of inverse temperat
 This is controlled by the function `make_invtemps`. A value between greater than 1 of `invtemps_curvature` causes means many inverse temperatures are close to zero, with a slow ramp-up, while a value between 0 and 1 means many temperatures close to the maximum temperature. 
 
 !!! note 
-	The inverse temperatures produced by `make_invtemps`, and *all* output of `get_best_policy` are organized with the highest temperature *first*. 
+    The inverse temperatures produced by `make_invtemps`, and *all* output of `get_best_policy` are organized with the highest temperature *first*. 
 
 ```@example main
 max_invtemp = 25.0
@@ -123,9 +124,9 @@ invtemps_g1 = make_invtemps(25.0, length = n_invtemps, invtemps_curvature = 2.0)
 invtemps_1 = make_invtemps(25.0, length = n_invtemps, invtemps_curvature = 1.0)
 invtemps_l1 = make_invtemps(25.0, length = n_invtemps, invtemps_curvature = 0.5)
 plot(1:n_invtemps, [invtemps_g1 invtemps_1 invtemps_l1]; 
-	xlab = "Inverse temperature index",
-	ylab = "Inverse temperature", 
-	label = ["Curvature = 2.0" "Curvature = 1.0" "Curvature = 0.5"])
+    xlab = "Inverse temperature index",
+    ylab = "Inverse temperature", 
+    label = ["Curvature = 2.0" "Curvature = 1.0" "Curvature = 0.5"])
 ```
 
 In general, you want to use an `invtemps_curvature` greater than `1` to ensure sufficient mixing. 
@@ -198,13 +199,13 @@ In addition to our "naive" implementation of Parallel Tempering, we also provide
 
 ```@example main
 out_pigeons = get_best_policy(
-	PigeonsSolver(); 
-	initfun = initfun,
-	nextfun = nextfun, 
-	objfun = objfun, 
-	max_invtemp = 50.0,
-	n_invtemps = 10,
-	n_inner_rounds = 10000)
+    PigeonsSolver(); 
+    initfun = initfun,
+    nextfun = nextfun, 
+    objfun = objfun, 
+    max_invtemp = 50.0,
+    n_invtemps = 10,
+    n_inner_rounds = 10000)
 ```
 
 We can compare the optimally chosen inverse temperatures chosen by Pigeons.jl with the ones we created using `invtemps_curvaturre`
@@ -228,16 +229,16 @@ To use Pigeons.jl's parallelization, we use the `PigeonsMPISolver()` solver, and
 
 ```julia
 out_pigeons_mpi = get_best_policy(
-	PigeonsMPISolver(); 
-	initfun = initfun,
-	nextfun = nextfun, 
-	objfun = objfun, 
-	max_invtemp = 50.0,
-	n_invtemps = 10,
-	n_inner_rounds = 100,
-	n_local_mpi_processes = 2,
-	n_threads = 2, 
-	dependencies = [StatsBase, LinearAlgebra])
+    PigeonsMPISolver(); 
+    initfun = initfun,
+    nextfun = nextfun, 
+    objfun = objfun, 
+    max_invtemp = 50.0,
+    n_invtemps = 10,
+    n_inner_rounds = 100,
+    n_local_mpi_processes = 2,
+    n_threads = 2, 
+    dependencies = [StatsBase, LinearAlgebra])
 ```
 
 ## Independent Simulated Annealing runs
@@ -282,15 +283,102 @@ end
 plot_all_objectives(out)
 ```
 
+## Saving and Reading Across Multiple Independent Runs
 
+Running many solvers in parallel across multiple compute jobs is a time-efficient way to draw a large number of optimal policies. For example, you may want to run an array job in `slurm` where you run the exact same analysis in parallel. 
 
+We provide utilities to save the policy guesses and objective values in a consistent way and read in these values across many independent runs, even if the runs were on separate computing jobs entirely. 
 
+### Running Multiple Independent Runs using Slurm
 
+Imagine you have written a package called MyAnalysisPackage.jl which has HighDimensionalOptimalPolicies.jl as a dependency to analyze a specific policy. 
 
+### Saving output
 
+For any given run, we can save outputs with the `save_policy_output_csv` function. 
 
+```julia
+mkdir("tmp_output")
+for i in 1:3
+    out_temp = get_best_policy(
+        PTMCMCSolver(); 
+        initfun = initfun,
+        nextfun = nextfun, 
+        objfun = objfun, 
+        max_invtemp = 50.0,
+        invtemps_curvature = 2.0,
+        n_invtemps = 10,
+        n_inner_rounds = 10000,
+        n_swap_rounds = 100)
 
+    save_policy_output_csv(out_temp; outdir = "tmp_output", only_max_invtemp = true)
+end
+```
 
+### Reading Output
+
+The `MultiCSVPolicyOutput` type reads in all `.csv` files in a given  directory and stores them so that you can access the vector of policy guesses and objective values just like you can with other output (i.e. `out` and `out_pigeons` in this tutorial). 
+
+!!! warning
+    `save_policy_output_csv` does not validate inputs on writing, and `MultiCSVPolicyOutput` does not validate inputs on reading. It is up to the user to ensure that all inputs to the solver are *the exact same* for all `.csv` files saved.
+
+`MultiCSVPolicyOutput` is a limited object. Unlike other policy ouputs (`MultiMCMCPolicyOutput` etc.) it does not store the underlying functions `initfun`, `nextfun`, or `objfun`. It is only useful for analyzing results, ideally in a session where the exact same `initfun`, `nextfun`, or `objfun` that created the `.csv` files you read in. 
+
+!!! waning
+    This function, and the workflow using `.csv` in general, is highly un-optimized. 
+
+```julia
+out_csv = MultiCSVPolicyOutput("tmp_output")
+```
+
+### Running Independent Jobs using Slurm
+
+When starting an Array job on the cluster, I highly recommend you build a System Image of all the Julia packages you will use when evaluating your policy. For instructions, see documentation [here](https://julialang.github.io/PackageCompiler.jl/dev/sysimages.html). 
+
+Below is an example of using the `-t` option to run an an array job using Slurm by starting multiple independent compute processes. Taken from Boston University's tutorials [here](https://www.bu.edu/tech/support/research/system-usage/running-jobs/advanced-batch/). This bash script will initiate 25 independent jobs on a machine with 1 core. We can alter the number of cores and tasks depending on the computing resources necessary. 
+
+```zsh
+#!/bin/bash -l
+
+# Specify that we will be running an Array job with 25 tasks numbered 1-25
+#$ -t 1-25
+
+# Request 1 core for my job
+#$ -pe omp 1
+
+# Give a name to my job
+#$ -N optimal_policies
+
+# Join the output and error streams
+#$ -j y
+
+# Run my julia script 
+julia myscript.jl
+```
+
+Your `myscript.jl` might look something like this
+
+```julia
+using HighDimensionalOptimalPolicies
+using MyAnalysisPackage
+
+out = get_best_policy(...)
+save_policy_output_csv(oudir = "tmp_output")
+```
+
+Then in an additional session, you can read in the results saved by the various tasks in this array job with by calling `MultiCSVPolicyOutput("tmp_output")`. 
+
+### Casting Policy Outputs to DataFrames for Manual Saving
+
+ To convert to DataFrames, use the function `Tables.dictcolumntable` as an intermediate tabular representation of a policy output.  
+
+```julia
+df = DataFrame(Tables.dictcolumntable(out))
+```
+
+We use an intermediate representation because HighDimensionalOptimalPolicies.jl does not have DataFrames.jl as a dependency. 
+
+## Running Many Parralel Jobs within the same Julia session
 
 
 
