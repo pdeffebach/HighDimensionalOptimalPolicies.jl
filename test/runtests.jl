@@ -140,7 +140,7 @@ function test_all()
 end
 
 @testset "HighDimensionalOptimalPolicies.jl" begin
-   # test_SimpleMCMC()
+    test_SimpleMCMC()
     test_MCMC()
     test_SimulatedAnnealing()
     test_PTMCMC()
