@@ -1,6 +1,5 @@
-function quickstart()
-    n_edges = 100
-    n_edges_to_upgrade = 50
+function quickstart(n_edges = 100)
+    n_edges_to_upgrade = floor(Int, n_edges / 2)
     network_values = sort(rand(LogNormal(1.0), n_edges), rev = true)
     network_values = network_values ./ sum(network_values)
 
