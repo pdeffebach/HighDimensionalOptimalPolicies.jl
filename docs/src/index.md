@@ -13,7 +13,7 @@ Pkg.add("https://github.com/pdeffebach/HighDimensionalOptimalPolicies.jl.git")
 
 ## Quick Start
 
-This quick-start solves for the optimal policy propblem outlined in the [Tutorial](@ref). Of a set of 100 prizes, which 50 do we pick? The top 50 of course! Given the high dimensionality of the state space, this problem is a simple illustration for how this package works. 
+This quick-start solves for the optimal policy propblem outlined in the [Tutorial](@ref). Of a set of 100 prizes, which 50 do we pick? The top 50 of course! Nonetheless, given the high dimensionality of the state space, this problem is a simple illustration for how various options in the package the set of optimal policies that get chosen. 
 
 ```@setup quickstart
 using HighDimensionalOptimalPolicies

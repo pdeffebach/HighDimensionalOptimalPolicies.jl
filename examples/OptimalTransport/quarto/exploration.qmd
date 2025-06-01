@@ -392,7 +392,3 @@ Finally, lets look at some of the networks.
 ps = [plot_n_policies(net, outpigeons; n_policies = 1) for i in 1:6]
 plot(ps...)
 ```
-
-```{julia}
-println("Hello, Peter!")
-```

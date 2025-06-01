@@ -1,5 +1,8 @@
 ## Example: Optimal Transportation Policy
 
+This document outlines the set-up for the optimal transport problem 
+implemented in the `examples` folder. It shows a more serious 
+mathematical problem that is a good candidate for this package. 
 
 ### Set-up
 

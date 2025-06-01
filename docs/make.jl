@@ -16,7 +16,8 @@ makedocs(;
         "Optimal Transport Example" => "optimal_transport.md",
         "References" => "references.md",
     ],
-    plugins = [bib]
+    plugins = [bib],
+    draft = true
 )
 
 deploydocs(

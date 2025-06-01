@@ -16,7 +16,6 @@ using Accessors
 using SpecialFunctions
 using StatsPlots
 
-include("Dummy/dummy.jl")
 include("OptimalBusNetwork/optimalbusnetwork.jl")
 
 end # module OptimalTransport

@@ -325,7 +325,7 @@ The `MultiCSVPolicyOutput` type reads in all `.csv` files in a given  directory 
 `MultiCSVPolicyOutput` is a limited object. Unlike other policy ouputs (`MultiMCMCPolicyOutput` etc.) it does not store the underlying functions `initfun`, `nextfun`, or `objfun`. It is only useful for analyzing results, ideally in a session where the exact same `initfun`, `nextfun`, or `objfun` that created the `.csv` files you read in. 
 
 !!! waning
-    This function, and the workflow using `.csv` in general, is highly un-optimized. 
+    This function, and the workflow using `.csv` in general, is highly un-optimized. When policies are large (100+ elements), then the `.csv` files saved will be large and reading the files in has the potential to crash your computer with an out-of-memory errory. This is best used on the cluster when memory constraints are less severe. 
 
 ```julia
 out_csv = MultiCSVPolicyOutput("tmp_output")
@@ -380,7 +380,63 @@ We use an intermediate representation because HighDimensionalOptimalPolicies.jl 
 
 ## Running Many Parralel Jobs within the same Julia session
 
-All solvers in HighDimensionalOptimalPolicies.jl use `pmap` internally, meaning 
+All solvers in HighDimensionalOptimalPolicies.jl use `pmap` internally, meaning running processes in parrallel should "just work". 
 
+When we run the independent Simulated Annealing-based optimal policy draws using the `IndependentSimulatedAnnealingSolver` type, the separate simulated annealing process are spread across multiple cores. By contrast, when we run Parallel Tempering, chains (i.e. MCMC runs for each inverse temperature) are spread across multiple cores. 
 
+Parallelization with Pigeons.jl, using the `PigeonsMPISolver` method, is more complicated and requires access to MPI. See Pigeons.jl documentation for more details. 
 
+A script using many cores in the same Julia session might look like 
+
+```julia
+using Distributed
+
+@everywhere using HighDimensionalOptimalPolicies
+@everywhere using Distributions
+@everywhere using Random
+@everywhere using LinearAlgebra
+
+# Use addprocs if you did not start Julia with multiple
+# processes at the command line
+# addprocs()
+
+# Use a large number of edges
+initfun, nextfun, objfun = HighDimensionalOptimalPolicies.quickstart(1000)
+
+out_par = get_best_policy(
+    IndependentSimulatedAnnealingSolver(); 
+    initfun = initfun,
+    nextfun = nextfun, 
+    objfun = objfun, 
+    max_invtemp = 50.0,
+    invtemps_curvature = 2.0,
+    n_invtemps = 10,
+    n_independent_runs = 500)
+
+println("Successfull finish")
+```
+
+And a `qsub` script which submits a job with a given number of cores might look like, where the variable `$NSLOTS` is created automatically by Slurm, which represents the number of cores available to Julia. We use the `$NSLOTS` variable to start Julia with the appropriate number of cores. 
+
+Consult with your local research computing staff for how to start a job with 100s or even 1000s of nodes in the same Julia process. 
+
+```bash
+#!/bin/bash -l
+
+# Request a computer with 16 cores
+#$ -pe omp 16
+
+# Choose cores with 8 GB of memory
+#$ -l mem_per_core=8G
+
+# Give a name to my job
+#$ -N optimal_policies
+
+# Join the output and error streams
+#$ -j y
+
+#$ -l h_rt=04:00:00
+
+echo $NSLOTS
+julia --project -p $NSLOTS script.jl
+```

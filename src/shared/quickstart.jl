@@ -1,3 +1,9 @@
+"""
+    quickstart(n_edges = 100)
+
+Create `initfun`, `nextfun`, and `objfun` as described in the
+tutorial.
+"""
 function quickstart(n_edges = 100)
     n_edges_to_upgrade = floor(Int, n_edges / 2)
     network_values = sort(rand(LogNormal(1.0), n_edges), rev = true)
