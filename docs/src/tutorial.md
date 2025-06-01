@@ -380,7 +380,7 @@ We use an intermediate representation because HighDimensionalOptimalPolicies.jl 
 
 ## Running Many Parralel Jobs within the same Julia session
 
-
+All solvers in HighDimensionalOptimalPolicies.jl use `pmap` internally, meaning 
 
 
 
