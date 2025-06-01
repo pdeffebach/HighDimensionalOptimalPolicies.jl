@@ -4,6 +4,13 @@ using HighDimensionalOptimalPolicies
 
 bib = CitationBibliography(joinpath(@__DIR__, "src", "refs.bib"))
 
+######################################################################
+# Set the draft keyword argument #####################################
+######################################################################
+# Set this to false while editing. To actually see all output,
+# set to true.
+draft = false
+
 makedocs(;
     sitename="High Dimensional Optimal Policies",
     format = Documenter.HTML(
@@ -17,7 +24,7 @@ makedocs(;
         "References" => "references.md",
     ],
     plugins = [bib],
-    draft = true
+    draft = draft
 )
 
 deploydocs(

@@ -104,7 +104,7 @@ out = get_best_policy(
     max_invtemp = 50.0,
     invtemps_curvature = 2.0,
     n_invtemps = 10,
-    n_inner_rounds = 10000,
+    n_inner_rounds = 5000,
     n_swap_rounds = 100)
 ```
 
@@ -204,8 +204,8 @@ out_pigeons = get_best_policy(
     nextfun = nextfun, 
     objfun = objfun, 
     max_invtemp = 50.0,
-    n_invtemps = 10,
-    n_inner_rounds = 10000)
+    n_invtemps = 6,
+    n_inner_rounds = 5000)
 ```
 
 We can compare the optimally chosen inverse temperatures chosen by Pigeons.jl with the ones we created using `invtemps_curvaturre`
@@ -255,7 +255,7 @@ out_sa = get_best_policy(
     invtemps_curvature = 2.0,
     n_invtemps = 10,
     n_inner_rounds = 1000,
-    n_independent_runs = 500)
+    n_independent_runs = 200)
 ```
 
 Note that the average policy shows a smoother decay from the start of the edge vector to the end. This is because, since simulated annealing runs are independent, the algorithm does not get stuck improving particular edges for a long amount of time, as occurs in Parallel Tempering, where policies are generated using an (ergodic) sequence of Metropolis-Hastings draws. 
@@ -307,8 +307,8 @@ for i in 1:3
         objfun = objfun, 
         max_invtemp = 50.0,
         invtemps_curvature = 2.0,
-        n_invtemps = 10,
-        n_inner_rounds = 10000,
+        n_invtemps = 6,
+        n_inner_rounds = 5000,
         n_swap_rounds = 100)
 
     save_policy_output_csv(out_temp; outdir = "tmp_output", only_max_invtemp = true)

@@ -42,6 +42,7 @@ function test_SimpleMCMC()
         nextfun = test_nextfun,
         objfun = test_objfun,
         max_invtemp = 100.0,
+        n_invtemps = 6,
         invtemps_curvature = 0.8)
 
     test_output(out)

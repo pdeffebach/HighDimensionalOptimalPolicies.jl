@@ -361,9 +361,9 @@ end
 
 function plot_sol(net, out; ind = nothing)
     if ind == nothing
-        average_policy = HDOP.get_average_policy(out)
+        average_policy = get_average_policy(out)
     else
-        average_policy = HDOP.get_average_policy(out; ind)
+        average_policy = get_average_policy(out; ind)
     end
     plot_network(net; average_edges_to_upgrade = average_policy)
 end
@@ -380,7 +380,7 @@ function run_solver(solver, net; n_edges_to_swap = nothing, kwargs...)
         initfun, objfun, nextfun
     end
 
-    out = HDOP.get_best_policy(solver; initfun, objfun, nextfun, kwargs...)
+    out = get_best_policy(solver; initfun, objfun, nextfun, kwargs...)
 
     (; net, out)
 end
@@ -421,7 +421,7 @@ function test_travel_network(solver, net;
         n_edges_to_swap,
         kwargs...)
 
-    average_policy = HDOP.get_average_policy(out)
+    average_policy = get_average_policy(out)
     p = plot_network(net; average_edges_to_upgrade = average_policy)
     if display_plot == true
         display(p)
@@ -431,18 +431,18 @@ function test_travel_network(solver, net;
 end
 
 function plot_average_policy(net, out)
-    average_policy = HDOP.get_average_policy(out)
+    average_policy = get_average_policy(out)
     p = plot_network(net; average_edges_to_upgrade = average_policy)
 end
 
 function plot_n_policies(net, out; n_policies = 6)
-    policy_vec = HDOP.get_policy_vec(out)
+    policy_vec = get_policy_vec(out)
     policy_vec_sub = sample(policy_vec, n_policies)
     plot_network(net; edges_to_upgrade_vec = policy_vec_sub)
 end
 
 function plot_objective_time(out; ind = 1, last_half = false)
-    objs = HDOP.get_objective_vec(out; ind)
+    objs = get_objective_vec(out; ind)
     if last_half == true
         inds = eachindex(objs)[floor(Int, length(objs) / 2):end]
         objs = objs[inds]
@@ -457,10 +457,10 @@ function plot_objective_time(out; ind = 1, last_half = false)
 end
 
 function plot_mixing_stats(net, out; inds = nothing)
-    invtemps = HDOP.get_invtemps(out)
+    invtemps = get_invtemps(out)
     log_n = get_log_n(net)
     mixing_stats = map(eachindex(invtemps)) do ind
-        HDOP.test_mixing(out, log_n; ind)
+        test_mixing(out, log_n; ind)
     end
 
     if !isnothing(inds)
@@ -477,7 +477,7 @@ end
 
 function plot_all_objectives(out)
     p = plot()
-    invtemps = HDOP.get_invtemps(out)
+    invtemps = get_invtemps(out)
 
     rng = Random.default_rng()
     x0 =  out.input.initfun(rng)
@@ -487,7 +487,7 @@ function plot_all_objectives(out)
     end
 
     for ind in 1:(length(invtemps))
-        obj = HDOP.get_objective_vec(out; ind)
+        obj = get_objective_vec(out; ind)
         label = invtemps[ind]
         density!(p, obj; alpha = 0.5, label = label, line_z = invtemps[ind], palette = :thermal)
     end
@@ -506,7 +506,7 @@ function optimalbusnetwork()
     plot_network(net)
 
     (_, out) = test_travel_network(
-      HDOP.PTMCMCSolver(),
+      PTMCMCSolver(),
       net;
       max_invtemp = 50,
       invtemps_curvature = 2.0,
@@ -514,7 +514,7 @@ function optimalbusnetwork()
       n_invtemps = 10,
       n_swap_rounds = 100,
       n_edges_to_swap = 1)
-    out
+    (; net, out)
 end
 
 
