@@ -71,6 +71,7 @@ export Tables
 
 include("shared/policy_api.jl")
 include("shared/saving.jl")
+include("shared/quickstart.jl")
 
 include("simplemcmc/api.jl")
 

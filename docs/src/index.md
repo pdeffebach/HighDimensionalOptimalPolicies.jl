@@ -2,6 +2,60 @@
 
 This package implements a suite of algorithms for identifying optimal policies using the methodology of [kreindler2023](@citet). 
 
+## Installation
+
+HighDimensionalOptimalPolicies.jl is not registered on the Julia registry. To download, run
+
+```julia
+import Pkg;
+Pkg.add("https://github.com/pdeffebach/HighDimensionalOptimalPolicies.jl.git")
+```
+
+## Quick Start
+
+This quick-start solves for the optimal policy propblem outlined in the [Tutorial](@ref). Of a set of 100 prizes, which 50 do we pick? The top 50 of course! Given the high dimensionality of the state space, this problem is a simple illustration for how this package works. 
+
+```@setup quickstart
+using HighDimensionalOptimalPolicies
+```
+
+We need three inputs, 
+
+* `initfun`: A starting policy guess, of the form `initfun(rng)` where `rng` is a random number generator. 
+* `nextfun`: Given a policy guess, what is the next policy guess? Of the form `nextfun(rng, state)`. 
+* `objfun`: What is the objective value of this policy? 
+
+```@example quickstart
+(; initfun, nextfun, objfun) = HighDimensionalOptimalPolicies.quickstart()
+```
+
+Get 200 policies drawn from the distribution of optimal policies using the `get_best_policy` function. 
+
+```@example quickstart
+out = get_best_policy(
+    IndependentSimulatedAnnealingSolver(); 
+    initfun = initfun,
+    nextfun = nextfun, 
+    objfun = objfun, 
+    max_invtemp = 50.0,
+    invtemps_curvature = 2.0,
+    n_invtemps = 5,
+    n_inner_rounds = 100,
+    n_independent_runs = 200)
+```
+
+Get the a vector of the best policy guesses with `get_policy_vec`
+
+```@example quickstart
+get_policy_vec(out)
+```
+
+get the vector of objective values with `get_objective_vec`
+
+```@example quickstart
+get_objective_vec(out)
+```
+
 ## Motivation
 
 Policymakers are often tasked with identifying "optimal" policies. That is, the choices that policymakers can make which result in the highest level of welfare (however defined) for a population. Sometimes there are only a few levers available to the policymaker, such that their choice involves manipulating only a small number of key policies. For instance, "what should the interest rate paid on bank deposits in the Federal Reserve?" involves finding the optimal value of one key variable. 
