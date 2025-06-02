@@ -203,8 +203,6 @@ Run a simulated annealing solver with a fixed number of rounds
 in between inverse temperatures.
 """
 function _get_best_policy(::SimulatedAnnealingSolver; initfun, nextfun, objfun, invtemps, n_inner_rounds, rng, only_last_result::Bool = false)
-    rng = Random.default_rng()
-    
     input = GenericSolverInput(initfun, nextfun, objfun, invtemps)
 
     sampler = PolicySampler(initfun, nextfun)
@@ -224,7 +222,6 @@ function _get_best_policy(::SimulatedAnnealingSolver; initfun, nextfun, objfun, 
 
         x = MCMCSolverOutput(params, objs, invtemp)
 
-        initial_state = last(params)
         x
     end
 
@@ -280,7 +277,7 @@ function get_best_policy(
     n_invtemps::Integer = 10,
     invtemps::Union{Nothing, AbstractVector{<:Real}} = nothing,
     n_inner_rounds::Integer = 1024,
-    only_last_result::Bool = false)
+    only_last_result::Bool = false,
     rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
@@ -327,12 +324,12 @@ function _get_best_policy(
     invtemps,
     n_inner_rounds,
     n_independent_runs,
-    only_last_result
-    rng = Random.default_rng())
+    only_last_result,
+    rng)
 
     vector_multi = pmap(1:n_independent_runs) do _
         multi = _get_best_policy(SimulatedAnnealingSolver(); initfun, objfun, nextfun, invtemps, n_inner_rounds, rng, only_last_result)
-    rng)
+    end
 
     merge_many_independent_outputs(vector_multi)
 end
@@ -388,7 +385,7 @@ function get_best_policy(
     invtemps::Union{AbstractVector{<:Real}, Nothing} = nothing,
     n_inner_rounds::Integer = 1024,
     n_independent_runs::Integer = 50,
-    only_last_result::Bool = true)
+    only_last_result::Bool = true,
     rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
