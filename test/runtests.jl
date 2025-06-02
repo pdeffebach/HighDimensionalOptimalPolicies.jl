@@ -13,12 +13,12 @@ end
 
 function test_initfun(rng)
     σ = 0.1
-    [rand(Normal(1, 1)) for i in 1:2]
+    [rand(rng, Normal(1, 1)) for i in 1:2]
 end
 
 function test_nextfun(rng, x)
     σ = 0.1
-    [rand(Normal(xi, σ)) for xi in x]
+    [rand(rng, Normal(xi, σ)) for xi in x]
 end
 
 function test_output(multioutput)
