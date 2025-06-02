@@ -120,7 +120,7 @@ function _get_best_policy(::PigeonsSolver; initfun, nextfun, objfun, max_invtemp
         n_rounds = ceil(Int, log2(n_inner_rounds)),
         explorer = H,
         multithreaded = false,
-        show_report = false;
+        show_report = false,
         kwargs...)
 
     invtemps = reverse(pt.shared.tempering.schedule.grids .* max_invtemp)
@@ -209,7 +209,7 @@ function _get_best_policy(::PigeonsMPISolver; initfun, objfun, nextfun, max_invt
         explorer = H,
         multithreaded = true,
         checkpoint = true,
-        show_report = false;
+        show_report = false,
         on = childprocess,
         kwargs...)
 

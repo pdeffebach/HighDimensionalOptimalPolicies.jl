@@ -13,14 +13,15 @@ end
 
 function test_initfun(rng)
     σ = 0.1
-    [rand(Normal(1, 1)) for i in 1:2]
+    [rand(rng, Normal(1, 1)) for i in 1:2]
 end
 
 function test_nextfun(rng, x)
     σ = 0.1
-    [rand(Normal(xi, σ)) for xi in x]
+    [rand(rng, Normal(xi, σ)) for xi in x]
 end
 
+# TODO: Add tests for rng reproducibility correctness
 function test_output(multioutput)
     invtemps = get_invtemps(multioutput)
     for ind in 1:length(invtemps)
@@ -139,7 +140,7 @@ function test_all()
 end
 
 @testset "HighDimensionalOptimalPolicies.jl" begin
-   # test_SimpleMCMC()
+    test_SimpleMCMC()
     test_MCMC()
     test_SimulatedAnnealing()
     test_PTMCMC()
