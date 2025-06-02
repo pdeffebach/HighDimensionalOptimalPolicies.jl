@@ -97,7 +97,7 @@ and assess whether their parameter states should be swapped.
 We swap states according to a Metropolis-Hastings step. This
 method of swapping is vanilla PT.
 """
-function perform_swap(swap_cands; odd_swap = true)
+function perform_swap(rng, swap_cands; odd_swap = true)
     params = [swap_cand.params for swap_cand in swap_cands]
     N = length(swap_cands)
     if odd_swap == true
@@ -121,7 +121,7 @@ function perform_swap(swap_cands; odd_swap = true)
         if 1 <= accept_ratio
             params[i] = params2
             params[i+1] = params1
-        elseif rand() < accept_ratio
+        elseif rand(rng) < accept_ratio
             params[i] = params2
             params[i+1] = params1
         else
@@ -137,11 +137,10 @@ function _get_best_policy(::PTMCMCSolver;
     nextfun,
     invtemps,
     n_inner_rounds,
-    n_swap_rounds)
+    n_swap_rounds,
+    rng)
 
     sampler = PolicySampler(initfun, nextfun)
-
-    rng = Random.default_rng()
 
     n_inner_rounds_per_swap = floor(Int, n_inner_rounds / n_swap_rounds)
 
@@ -163,7 +162,7 @@ function _get_best_policy(::PTMCMCSolver;
     # Run the swapping step using the initial states
     local params
     for swap_round in 2:n_swap_rounds
-        params = perform_swap(swap_cands; odd_swap = isodd(swap_round))
+        params = perform_swap(rng, swap_cands; odd_swap = isodd(swap_round))
 
         chainsamples = pmap(models, params) do model, param
             chainsample = run_inner_sampling(rng, model, sampler, n_inner_rounds_per_swap; initial_state = param)
@@ -196,7 +195,8 @@ end
         n_invtemps = 10,
         invtemps = nothing,
         n_inner_rounds = 1024,
-        n_swap_rounds = 100)
+        n_swap_rounds = 100,
+        rng = Random.default_rng())
 
 * `initfun`: `initfun(rng)` must return an initial guess
 * `nextfun`: `nextfun(rng, state)` must return the next guess,
@@ -217,6 +217,7 @@ end
   `n_swap_rounds`, below. In other words, the number of Metropolis-
   Hastings steps in between swaps is approximately `n_inner_rounds / n_swap_rounds`.
 * `n_swap_rounds`: The number of swap rounds.
+* `rng`: The number of swap rounds.
 """
 function get_best_policy(
     s::PTMCMCSolver;
@@ -228,7 +229,8 @@ function get_best_policy(
     n_invtemps::Integer = 10,
     invtemps::Union{Nothing, AbstractVector{<:Real}} = nothing,
     n_inner_rounds::Integer = 1024,
-    n_swap_rounds::Integer = 100)
+    n_swap_rounds::Integer = 100,
+    rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
         if isnothing(invtemps)
@@ -237,7 +239,7 @@ function get_best_policy(
     else
         invtemps = make_invtemps(max_invtemp; invtemps_curvature, length = n_invtemps)
     end
-    _get_best_policy(s; initfun, objfun, nextfun, invtemps, n_inner_rounds, n_swap_rounds)
+    _get_best_policy(s; initfun, objfun, nextfun, invtemps, n_inner_rounds, n_swap_rounds, rng)
 end
 
 # Accessors for the outputs ##########################################

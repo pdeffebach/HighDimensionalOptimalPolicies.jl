@@ -123,9 +123,7 @@ end
 
 Get optimal policies for a given high dimensional problem.
 """
-function _get_best_policy(s::MCMCSolver; initfun, nextfun, objfun, invtemps, n_inner_rounds)
-    rng = Random.default_rng()
-
+function _get_best_policy(s::MCMCSolver; initfun, nextfun, objfun, invtemps, n_inner_rounds, rng)
     input = GenericSolverInput(initfun, nextfun, objfun, invtemps)
 
     sampler = PolicySampler(initfun, nextfun)
@@ -150,7 +148,8 @@ end
         invtemps_curvature = nothing,
         n_invtemps = 10,
         invtemps = nothing,
-        n_inner_rounds = 1024)
+        n_inner_rounds = 1024,
+        rng = Random.default_rng())
 
 
 Get optimal policies using `MCMCSolver`, which runs separate
@@ -172,6 +171,7 @@ Metropolis-Hastings runs for each temperature.
   and `invtemps_curvature` may be passed, but not both.
 * `n_inner_rounds`: The number of Metropolis-Hastings rounds per
   inverse temperature.
+* `rng`: The random number generator used for estimation
 """
 function get_best_policy(
     s::MCMCSolver;
@@ -182,7 +182,8 @@ function get_best_policy(
     invtemps_curvature::Union{Nothing, Real} = nothing,
     n_invtemps::Integer = 10,
     invtemps::Union{Nothing, AbstractVector{<:Real}} = nothing,
-    n_inner_rounds::Integer = 1024)
+    n_inner_rounds::Integer = 1024,
+    rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
         if isnothing(invtemps)
@@ -191,7 +192,7 @@ function get_best_policy(
     else
         invtemps = make_invtemps(max_invtemp; invtemps_curvature, length = n_invtemps)
     end
-    _get_best_policy(s; initfun, objfun, nextfun, invtemps, n_inner_rounds)
+    _get_best_policy(s; initfun, objfun, nextfun, invtemps, n_inner_rounds, rng)
 end
 
 
@@ -201,9 +202,9 @@ end
 Run a simulated annealing solver with a fixed number of rounds
 in between inverse temperatures.
 """
-function _get_best_policy(::SimulatedAnnealingSolver; initfun, nextfun, objfun, invtemps, n_inner_rounds, only_last_result::Bool = false)
+function _get_best_policy(::SimulatedAnnealingSolver; initfun, nextfun, objfun, invtemps, n_inner_rounds, rng, only_last_result::Bool = false)
     rng = Random.default_rng()
-
+    
     input = GenericSolverInput(initfun, nextfun, objfun, invtemps)
 
     sampler = PolicySampler(initfun, nextfun)
@@ -240,7 +241,8 @@ end
         invtemps_curvature = nothing,
         n_invtemps = 10,
         invtemps = nothing,
-        n_inner_rounds = 1024)
+        n_inner_rounds = 1024,
+        rng = Random.default_rng())
 
 
 Get optimal policies using `SimulatedAnnealingSolver`, which runs
@@ -266,6 +268,7 @@ is reached.
   inverse temperature.
 * `only_last_result`: Whether to only return the last result for
   each chain, rather than the full history.
+* `rng`: The random number generator used
 """
 function get_best_policy(
     s::SimulatedAnnealingSolver;
@@ -278,6 +281,7 @@ function get_best_policy(
     invtemps::Union{Nothing, AbstractVector{<:Real}} = nothing,
     n_inner_rounds::Integer = 1024,
     only_last_result::Bool = false)
+    rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
         if isnothing(invtemps)
@@ -286,7 +290,8 @@ function get_best_policy(
     else
         invtemps = make_invtemps(max_invtemp; invtemps_curvature, length = n_invtemps)
     end
-    _get_best_policy(s; initfun, nextfun, objfun, invtemps, n_inner_rounds, only_last_result)
+
+    _get_best_policy(s; initfun, nextfun, objfun, invtemps, n_inner_rounds, rng, only_last_result)
 end
 
 
@@ -322,12 +327,13 @@ function _get_best_policy(
     invtemps,
     n_inner_rounds,
     n_independent_runs,
-    only_last_result)
-    rng = Random.default_rng()
+    only_last_result
+    rng = Random.default_rng())
 
     vector_multi = pmap(1:n_independent_runs) do _
-        multi = _get_best_policy(SimulatedAnnealingSolver(); initfun, objfun, nextfun, invtemps, n_inner_rounds, only_last_result)
-    end
+        multi = _get_best_policy(SimulatedAnnealingSolver(); initfun, objfun, nextfun, invtemps, n_inner_rounds, rng, only_last_result)
+    rng)
+
     merge_many_independent_outputs(vector_multi)
 end
 
@@ -343,7 +349,8 @@ end
         invtemps = nothing,
         n_inner_rounds = 1024,
         n_independent_runs = 50,
-        only_last_result = true)
+        only_last_result = true,
+        rng = Random.default_rng())
 
 Get optimal policies using `SimulatedAnnealingSolver`, which runs
 successive Metropolis-Hastings runs, each time increasing
@@ -368,6 +375,7 @@ is reached.
   inverse temperature.
 * `n_independent_runs`: The number of independent Simulated Annealing
   algorithm runs.
+* `rng`: The random number generator used.
 """
 function get_best_policy(
     s::IndependentSimulatedAnnealingSolver;
@@ -381,6 +389,7 @@ function get_best_policy(
     n_inner_rounds::Integer = 1024,
     n_independent_runs::Integer = 50,
     only_last_result::Bool = true)
+    rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
         if isnothing(invtemps)
@@ -389,7 +398,8 @@ function get_best_policy(
     else
         invtemps = make_invtemps(max_invtemp; invtemps_curvature, length = n_invtemps)
     end
-    _get_best_policy(s; initfun, nextfun, objfun, invtemps, n_inner_rounds, n_independent_runs, only_last_result)
+
+      _get_best_policy(s; initfun, nextfun, objfun, invtemps, n_inner_rounds, n_independent_runs, rng, only_last_result)
 end
 
 # Accessors for the output ###########################################

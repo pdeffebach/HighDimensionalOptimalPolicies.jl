@@ -65,10 +65,8 @@ function simplemcmc_inner(rng, initfun, nextfun, objfun, invtemp; n_inner_rounds
     return (params = last_half(xs_out), objs = last_half(ys_out))
 end
 
-function _get_best_policy(s::SimpleMCMCSolver; initfun, nextfun, objfun, invtemps, n_inner_rounds)
+function _get_best_policy(s::SimpleMCMCSolver; initfun, nextfun, objfun, invtemps, n_inner_rounds, rng)
     input = GenericSolverInput(initfun, nextfun, objfun, invtemps)
-
-    rng = Random.default_rng()
 
     v = pmap(invtemps) do invtemp
         (; params, objs) = simplemcmc_inner(rng, initfun, nextfun, objfun, invtemp; n_inner_rounds)
@@ -87,7 +85,8 @@ function get_best_policy(
     invtemps_curvature = nothing,
     n_invtemps = nothing,
     invtemps = nothing,
-    n_inner_rounds = 1024)
+    n_inner_rounds = 1024,
+    rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
         if isnothing(invtemps)
@@ -96,7 +95,8 @@ function get_best_policy(
     else
         invtemps = make_invtemps(max_invtemp; invtemps_curvature, length = n_invtemps)
     end
-    _get_best_policy(s; initfun, objfun, nextfun, invtemps, n_inner_rounds)
+
+    _get_best_policy(s; initfun, objfun, nextfun, invtemps, n_inner_rounds, rng)
 end
 
 # Accessors for the output ###########################################
