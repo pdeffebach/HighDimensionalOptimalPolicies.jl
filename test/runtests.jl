@@ -38,11 +38,12 @@ end
 function test_SimpleMCMC()
     println("Testing SimpleMCMCSolver:")
     out = get_best_policy(
-        SimpleMCMCSolver();
+        HighDimensionalOptimalPolicies.SimpleMCMCSolver();
         initfun = test_initfun,
         nextfun = test_nextfun,
         objfun = test_objfun,
         max_invtemp = 100.0,
+        n_invtemps = 6,
         invtemps_curvature = 0.8)
 
     test_output(out)

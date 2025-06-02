@@ -84,7 +84,6 @@ function make_invtemps(max_invtemp::Real; length::Integer, invtemps_curvature::R
     invtemps = (range(1, 0, length = length) .^ invtemps_curvature) .* max_invtemp
 end
 
-
 function test_mixing(obj_vec::Vector{<:Real}, invtemp::Real, log_n::Real; K::Union{Integer, Nothing} = nothing)
     if !isnothing(K)
         obj_vec = StatsBase.sample(obj_vec, K)

@@ -10,8 +10,8 @@ execute:
 ---
 
 This Quarto Notebook (a tool I am trying out for the first time) serves to explore how Parallel Tempering and other algorithms can be applied to an optimal transport problem. 
-
 This document highlights that, so far, I have not been able to set up an optimal transport problem with a PT algorithm that generates a "good" (in some subjective sense), level of mixing. 
+
 
 ## The structure of this project
 
@@ -29,16 +29,6 @@ using OptimalTransport
 using Random
 using Plots
 using QuartoTools
-
-# Export all symbols in OptimalTransport for convenience
-function exportall(mod)
-    for n in names(mod, all = true)
-        if Base.isidentifier(n) && n ∉ (Symbol(mod), :eval)
-            @eval mod export $n
-        end
-    end
-end
-exportall(OptimalTransport)
 ```
 
 ## Exploring the travel network
@@ -103,7 +93,7 @@ We get improvements to the travel nework with the function
   more on this below. We can also pass a vector of inverse temperatures
   directly to this function if we want. 
 * The number of rounds per chain `n_inner_rounds`
-* The number of chains to use `n_chains`, which is the same as the number of 
+* The number of chains to use `n_invtemps`, which is the same as the number of 
   inverse temperatures. 
 * The number of edges to swap for every new guess in the MCMC
   algorithm, `n_edges_to_swap`. Unlike the other arguments, this keyword argument 
@@ -123,7 +113,7 @@ We get improvements to the travel nework with the function
   max_invtemp = 50,
   invtemps_curvature = 2.0,
   n_inner_rounds = 10^3,
-  n_chains = 20,
+  n_invtemps = 20,
   n_swap_rounds = 100,
   n_edges_to_swap = 1)
 out
@@ -364,7 +354,7 @@ of setting the annealing schedule.
   net; 
   max_invtemp = 50,
   n_inner_rounds = 10^3,
-  n_chains = 20,
+  n_invtemps = 20,
   n_edges_to_swap = 1)
 ```
 
@@ -391,8 +381,4 @@ Finally, lets look at some of the networks.
 ```{julia}
 ps = [plot_n_policies(net, outpigeons; n_policies = 1) for i in 1:6]
 plot(ps...)
-```
-
-```{julia}
-println("Hello, Peter!")
 ```

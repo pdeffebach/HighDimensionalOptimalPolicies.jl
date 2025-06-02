@@ -21,7 +21,7 @@ function Base.show(io::IO, t::SimpleMCMCSolverOutput)
     print(io, s)
 end
 
-struct MultiSimpleMCMCSolverOutput{V, I}
+struct MultiSimpleMCMCSolverOutput{V, I} <: AbstractMultiPolicyOutput
     v::V
     input::I
 end
@@ -83,9 +83,9 @@ function get_best_policy(
     nextfun,
     max_invtemp = nothing,
     invtemps_curvature = nothing,
+    n_invtemps = nothing,
     invtemps = nothing,
     n_inner_rounds = 1024,
-    n_chains = 10,
     rng = Random.default_rng())
 
     if isnothing(max_invtemp) && isnothing(invtemps_curvature)
@@ -93,8 +93,9 @@ function get_best_policy(
             throw(ArgumentError("Need to provide either max_invtemp and invtemps_curvature or invtemps"))
         end
     else
-        invtemps = make_invtemps(max_invtemp; invtemps_curvature, length = n_chains)
+        invtemps = make_invtemps(max_invtemp; invtemps_curvature, length = n_invtemps)
     end
+
     _get_best_policy(s; initfun, objfun, nextfun, invtemps, n_inner_rounds, rng)
 end
 
@@ -117,21 +118,6 @@ function get_objective_vec(out::SimpleMCMCSolverOutput)
     # No need for normalizing by the inverse temperature
     # with this implementation
     out.objs
-end
-
-function test_mixing(out::SimpleMCMCSolverOutput, log_n; K = nothing)
-    ξ = out.invtemp
-    obj_vec = get_objective_vec(out)
-    if !isnothing(K)
-        obj_vec = StatsBase.sample(obj_vec, K)
-    end
-    obj_max = maximum(obj_vec)
-    obj_mean = mean(obj_vec)
-    obj_std = std(obj_vec)
-
-    T̂ = obj_max - obj_mean - (log_n / ξ)
-    z = T̂ / obj_std
-#    p = cdf(Normal(0, 1), z)
 end
 
 function get_policy_vec(out::MultiSimpleMCMCSolverOutput; ind = 1)
