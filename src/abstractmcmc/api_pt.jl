@@ -97,7 +97,7 @@ and assess whether their parameter states should be swapped.
 We swap states according to a Metropolis-Hastings step. This
 method of swapping is vanilla PT.
 """
-function perform_swap(swap_cands; odd_swap = true)
+function perform_swap(rng, swap_cands; odd_swap = true)
     params = [swap_cand.params for swap_cand in swap_cands]
     N = length(swap_cands)
     if odd_swap == true
@@ -121,7 +121,7 @@ function perform_swap(swap_cands; odd_swap = true)
         if 1 <= accept_ratio
             params[i] = params2
             params[i+1] = params1
-        elseif rand() < accept_ratio
+        elseif rand(rng) < accept_ratio
             params[i] = params2
             params[i+1] = params1
         else
@@ -162,7 +162,7 @@ function _get_best_policy(::PTMCMCSolver;
     # Run the swapping step using the initial states
     local params
     for swap_round in 2:n_swap_rounds
-        params = perform_swap(swap_cands; odd_swap = isodd(swap_round))
+        params = perform_swap(rng, swap_cands; odd_swap = isodd(swap_round))
 
         chainsamples = pmap(models, params) do model, param
             chainsample = run_inner_sampling(rng, model, sampler, n_inner_rounds_per_swap; initial_state = param)
